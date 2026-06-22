@@ -10,6 +10,7 @@ interface Me {
   loggedIn: boolean;
   username?: string;
   imageUrl?: string | null;
+  gateEnabled?: boolean;
 }
 
 export default function Home() {
@@ -55,9 +56,16 @@ export default function Home() {
   }, [discovery]);
 
   const logout = useCallback(async () => {
+    // Log out of Last.fm only — the gate stays unlocked. Full navigation so the
+    // logged-out state (login screen) is rendered fresh.
     await fetch("/api/auth/logout", { method: "POST" });
-    // Full navigation so middleware re-checks the gate; with the gate cookie
-    // cleared it redirects to /gate (access password required again).
+    window.location.href = "/";
+  }, []);
+
+  const lock = useCallback(async () => {
+    // Re-lock the app — clear the gate cookie but keep the Last.fm session. Full
+    // navigation so middleware re-checks the gate and redirects to /gate.
+    await fetch("/api/gate", { method: "DELETE" });
     window.location.href = "/";
   }, []);
 
@@ -67,13 +75,20 @@ export default function Home() {
         <div className="brand">
           next<span>·</span>album
         </div>
-        {me?.loggedIn && (
+        {me && (me.loggedIn || me.gateEnabled) && (
           <div className="user-chip">
-            {me.imageUrl && <img src={me.imageUrl} alt="" />}
-            <span>{me.username}</span>
-            <button className="btn btn-ghost" onClick={logout}>
-              Log out
-            </button>
+            {me.loggedIn && me.imageUrl && <img src={me.imageUrl} alt="" />}
+            {me.loggedIn && <span>{me.username}</span>}
+            {me.gateEnabled && (
+              <button className="btn btn-ghost" onClick={lock}>
+                Lock
+              </button>
+            )}
+            {me.loggedIn && (
+              <button className="btn btn-ghost" onClick={logout}>
+                Log out
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -53,6 +53,9 @@ button {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 2rem;
+  /* Reserve the chip/button height so the logo doesn't jump when the session
+     (and avatar) loads after the initial render. */
+  min-height: 2.5rem;
 }
 
 .brand {

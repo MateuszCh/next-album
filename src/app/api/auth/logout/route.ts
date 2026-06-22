@@ -1,17 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/lib/session";
-import { GATE_COOKIE } from "@/lib/gate";
 
-export async function POST(req: NextRequest) {
-  // Clear our app session (username + Last.fm session key)...
+export async function POST() {
+  // Log out of Last.fm only — destroy our app session (username + Last.fm
+  // session key). The gate cookie is left intact, so the access password is
+  // NOT required again; locking is a separate action (DELETE /api/gate).
   const session = await getSessionFromCookies();
   session.destroy();
 
-  // ...and the gate cookie, so the access password is required again.
-  const cookieStore = await cookies();
-  cookieStore.delete(GATE_COOKIE);
-
-  const base = process.env.APP_URL ?? req.nextUrl.origin;
-  return NextResponse.json({ ok: true, redirect: base.replace(/\/$/, "") + "/" });
+  return NextResponse.json({ ok: true });
 }

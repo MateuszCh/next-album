@@ -21,3 +21,13 @@ export async function POST(req: NextRequest) {
   });
   return res;
 }
+
+/**
+ * Re-lock the app: clear the gate cookie so the access password is required
+ * again. The Last.fm session is left untouched.
+ */
+export async function DELETE() {
+  const res = NextResponse.json({ ok: true });
+  res.cookies.delete(GATE_COOKIE);
+  return res;
+}

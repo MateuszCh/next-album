@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSessionFromCookies } from "@/lib/session";
 import { getUserInfo } from "@/lib/lastfm/user";
+import { isGateEnabled } from "@/lib/gate";
 
 export async function GET() {
   const session = await getSessionFromCookies();
   if (!session.username) {
-    return NextResponse.json({ loggedIn: false });
+    return NextResponse.json({ loggedIn: false, gateEnabled: isGateEnabled() });
   }
 
   let imageUrl: string | null = null;
@@ -20,5 +21,6 @@ export async function GET() {
     loggedIn: true,
     username: session.username,
     imageUrl,
+    gateEnabled: isGateEnabled(),
   });
 }
