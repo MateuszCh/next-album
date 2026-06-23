@@ -39,6 +39,21 @@ export interface LastfmArtistAlbum {
     image: LastfmImage[];
 }
 
+export interface LastfmTagAlbum {
+    name: string;
+    mbid?: string;
+    url: string;
+    artist: { name: string; mbid?: string; url: string };
+    image: LastfmImage[];
+}
+
+export interface LastfmTagArtist {
+    name: string;
+    mbid?: string;
+    url: string;
+    image: LastfmImage[];
+}
+
 export interface LastfmRecentTrack {
     name: string;
     artist: { '#text': string; mbid?: string };
@@ -54,4 +69,5 @@ export interface AlbumRecommendation {
     mode: 'rediscovery' | 'discovery';
     reason: string;
     playcount: number | null;
+    genre?: string;
 }

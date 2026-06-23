@@ -160,6 +160,89 @@ button {
     margin-bottom: 1.5rem;
 }
 
+.flow-toggle {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    margin-bottom: 1.25rem;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
+
+.flow-toggle button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.flow-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+}
+
+.flow-toggle button:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.genre-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.genre-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 1px solid var(--border);
+    background: var(--bg-elev-2);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.genre-chip:hover:not(:disabled) {
+    border-color: var(--text-dim);
+}
+
+.genre-chip.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.genre-chip:disabled {
+    cursor: default;
+    opacity: 0.6;
+}
+
+.genre-chip .for-you-star {
+    color: var(--accent);
+    font-size: 0.7rem;
+}
+
+.genre-chip.selected .for-you-star {
+    color: #fff;
+}
+
 .slider-row {
     margin-bottom: 1.25rem;
 }
@@ -268,6 +351,12 @@ input[type='range']:disabled {
     padding: 0.35rem 0.8rem;
     font-size: 0.75rem;
     font-weight: 600;
+}
+
+.badge-genre {
+    left: auto;
+    right: 0.8rem;
+    background: rgba(213, 16, 7, 0.8);
 }
 
 .card-body {

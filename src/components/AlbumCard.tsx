@@ -41,6 +41,7 @@ export function AlbumCard({ album }: { album: AlbumRecommendation }) {
                 <span className="badge">
                     {album.mode === 'discovery' ? 'Discovery' : 'From favorites'}
                 </span>
+                {album.genre && <span className="badge badge-genre">{album.genre}</span>}
             </div>
             <div className="card-body">
                 <h2 className="album-title">{album.name}</h2>

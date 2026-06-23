@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromCookies } from '@/lib/session';
-import { recommendAlbum } from '@/lib/recommend/engine';
+import { recommendAlbum, recommendByGenre } from '@/lib/recommend/engine';
+import { isKnownGenre } from '@/lib/recommend/genres';
 
 export async function GET(req: NextRequest) {
     const session = await getSessionFromCookies();
@@ -11,8 +12,15 @@ export async function GET(req: NextRequest) {
     const discoveryParam = req.nextUrl.searchParams.get('discovery');
     const discovery = discoveryParam !== null ? Number(discoveryParam) : 0.4;
 
+    const genre = req.nextUrl.searchParams.get('genre');
+    if (genre !== null && !isKnownGenre(genre)) {
+        return NextResponse.json({ error: 'Unknown genre.' }, { status: 400 });
+    }
+
     try {
-        const album = await recommendAlbum(session.username, discovery);
+        const album = genre
+            ? await recommendByGenre(session.username, discovery, genre)
+            : await recommendAlbum(session.username, discovery);
         return NextResponse.json(album);
     } catch (err) {
         // Log details server-side; return a generic message so we don't leak

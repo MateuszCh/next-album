@@ -2,6 +2,8 @@ import { cached } from '@/lib/cache';
 import { getTopAlbums, getTopArtists, getRecentTracks, pickImage } from '@/lib/lastfm/user';
 import { getSimilarArtists, getArtistTopAlbums } from '@/lib/lastfm/artist';
 import { getAlbumInfo } from '@/lib/lastfm/album';
+import { getTagTopAlbums, getTagTopArtists } from '@/lib/lastfm/tag';
+import { getGenre } from './genres';
 import { resolveCover } from '@/lib/coverart';
 import { weightedPick } from './weighted';
 import type { AlbumRecommendation, LastfmTopAlbum, LastfmTopArtist } from '@/lib/lastfm/types';
@@ -23,7 +25,7 @@ interface Profile {
  * Fetches and caches the user's profile (1h). Subsequent rolls reuse the same
  * data, so they are instant.
  */
-async function loadProfile(username: string): Promise<Profile> {
+export async function loadProfile(username: string): Promise<Profile> {
     return cached(`profile:${username}`, async () => {
         const [topAlbums, topArtists, recent] = await Promise.all([
             getTopAlbums(username, { period: 'overall', limit: 500 }),
@@ -135,6 +137,134 @@ async function recommendDiscovery(profile: Profile): Promise<AlbumRecommendation
     }
 
     return null;
+}
+
+/**
+ * Genre favorites: a weighted random album from the user's favorites whose
+ * artist belongs to the genre (per Last.fm's top artists for the tag).
+ */
+async function recommendGenreFavorites(
+    profile: Profile,
+    genreTag: string,
+    label: string,
+): Promise<AlbumRecommendation | null> {
+    let genreArtists;
+    try {
+        genreArtists = await getTagTopArtists(genreTag);
+    } catch {
+        return null;
+    }
+    const genreArtistNames = new Set(genreArtists.map((a) => a.name.toLowerCase()));
+
+    const inGenre = profile.topAlbums.filter((a) =>
+        genreArtistNames.has(a.artist.name.toLowerCase()),
+    );
+    if (inGenre.length === 0) return null;
+
+    const pool = inGenre.filter(
+        (a) => !profile.recentAlbumKeys.has(albumKey(a.artist.name, a.name)),
+    );
+    const candidates = pool.length > 0 ? pool : inGenre;
+    const chosen = weightedPick(candidates, (a) => Number(a.playcount) || 1);
+    if (!chosen) return null;
+
+    const imageUrl = await resolveCover(pickImage(chosen.image), chosen.mbid || null);
+
+    return {
+        name: chosen.name,
+        artist: chosen.artist.name,
+        url: chosen.url,
+        imageUrl,
+        mode: 'rediscovery',
+        reason: `From your favorites in ${label} — played ${chosen.playcount}×.`,
+        playcount: Number(chosen.playcount) || null,
+        genre: label,
+    };
+}
+
+/**
+ * Genre discovery: a weighted random album from the genre's top albums,
+ * dropping artists the user already listens to. Weighted by list position
+ * (Last.fm returns no playcount for tag albums) so iconic albums come up more.
+ */
+async function recommendGenreDiscovery(
+    profile: Profile,
+    genreTag: string,
+    label: string,
+): Promise<AlbumRecommendation | null> {
+    let albums;
+    try {
+        albums = await getTagTopAlbums(genreTag);
+    } catch {
+        return null;
+    }
+    if (albums.length === 0) return null;
+
+    const fresh = albums.filter((a) => !profile.topArtistNames.has(a.artist.name.toLowerCase()));
+    const candidates = fresh.length > 0 ? fresh : albums;
+
+    // Higher weight for earlier (more popular) entries.
+    const chosen = weightedPick(candidates, (a) => candidates.length - candidates.indexOf(a));
+    if (!chosen) return null;
+
+    // The tag list lacks covers/mbid — pull the album details.
+    let imageUrl = pickImage(chosen.image);
+    let mbid = chosen.mbid || null;
+    let url = chosen.url;
+    try {
+        const info = await getAlbumInfo(chosen.artist.name, chosen.name);
+        if (info) {
+            imageUrl = info.imageUrl ?? imageUrl;
+            mbid = info.mbid ?? mbid;
+            url = info.url ?? url;
+        }
+    } catch {
+        // fall back to the data from the list
+    }
+
+    const cover = await resolveCover(imageUrl, mbid);
+
+    return {
+        name: chosen.name,
+        artist: chosen.artist.name,
+        url,
+        imageUrl: cover,
+        mode: 'discovery',
+        reason: `Something new in ${label}.`,
+        playcount: null,
+        genre: label,
+    };
+}
+
+/**
+ * Genre entry point: same discovery/rediscovery coin flip as `recommendAlbum`,
+ * but scoped to the chosen genre. Falls back to the other mode if one is empty.
+ */
+export async function recommendByGenre(
+    username: string,
+    discovery: number,
+    genreTag: string,
+): Promise<AlbumRecommendation> {
+    const profile = await loadProfile(username);
+
+    if (profile.topAlbums.length === 0 && profile.topArtists.length === 0) {
+        throw new Error('No data in your Last.fm profile — listen to some music first.');
+    }
+
+    const label = getGenre(genreTag)?.label ?? genreTag;
+    const goDiscovery = Math.random() < clamp01(discovery);
+
+    const primary = goDiscovery
+        ? await recommendGenreDiscovery(profile, genreTag, label)
+        : await recommendGenreFavorites(profile, genreTag, label);
+    if (primary) return primary;
+
+    const fallback = goDiscovery
+        ? await recommendGenreFavorites(profile, genreTag, label)
+        : await recommendGenreDiscovery(profile, genreTag, label);
+    if (fallback) return fallback;
+
+    throw new Error(`No ${label} albums found — try another genre.`);
 }
 
 /**

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { LoginButton } from '@/components/LoginButton';
 import { ModeSlider } from '@/components/ModeSlider';
+import { FlowToggle, type FlowMode } from '@/components/FlowToggle';
+import { GenrePicker } from '@/components/GenrePicker';
 import { AlbumCard } from '@/components/AlbumCard';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
@@ -16,6 +18,8 @@ interface Me {
 export default function Home() {
     const [me, setMe] = useState<Me | null>(null);
     const [discovery, setDiscovery] = useState(0.5);
+    const [flowMode, setFlowMode] = useState<FlowMode>('surprise');
+    const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
     const [album, setAlbum] = useState<AlbumRecommendation | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -41,6 +45,10 @@ export default function Home() {
             }
         }
 
+        if (window.localStorage.getItem('flowMode') === 'genre') setFlowMode('genre');
+        const storedGenre = window.localStorage.getItem('genre');
+        if (storedGenre) setSelectedGenre(storedGenre);
+
         const params = new URLSearchParams(window.location.search);
         const err = params.get('error');
         if (err) {
@@ -60,21 +68,40 @@ export default function Home() {
         window.localStorage.setItem('discovery', String(value));
     }, []);
 
-    const roll = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const res = await fetch(`/api/recommend?discovery=${discovery}`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error ?? 'Server error.');
-            setAlbum(data as AlbumRecommendation);
-            window.localStorage.setItem('lastAlbum', JSON.stringify(data));
-        } catch (e) {
-            setError(e instanceof Error ? e.message : 'Something went wrong.');
-        } finally {
-            setLoading(false);
-        }
-    }, [discovery]);
+    const roll = useCallback(
+        async (genre?: string | null) => {
+            setLoading(true);
+            setError(null);
+            try {
+                const params = new URLSearchParams({ discovery: String(discovery) });
+                if (genre) params.set('genre', genre);
+                const res = await fetch(`/api/recommend?${params.toString()}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error ?? 'Server error.');
+                setAlbum(data as AlbumRecommendation);
+                window.localStorage.setItem('lastAlbum', JSON.stringify(data));
+            } catch (e) {
+                setError(e instanceof Error ? e.message : 'Something went wrong.');
+            } finally {
+                setLoading(false);
+            }
+        },
+        [discovery],
+    );
+
+    const handleFlowModeChange = useCallback((mode: FlowMode) => {
+        setFlowMode(mode);
+        window.localStorage.setItem('flowMode', mode);
+    }, []);
+
+    const handlePickGenre = useCallback(
+        (tag: string) => {
+            setSelectedGenre(tag);
+            window.localStorage.setItem('genre', tag);
+            roll(tag);
+        },
+        [roll],
+    );
 
     const logout = useCallback(async () => {
         // Log out of Last.fm only — the gate stays unlocked. Full navigation so the
@@ -138,25 +165,40 @@ export default function Home() {
                         </p>
 
                         <div className="controls">
+                            <FlowToggle
+                                value={flowMode}
+                                onChange={handleFlowModeChange}
+                                disabled={loading}
+                            />
                             <ModeSlider
                                 value={discovery}
                                 onChange={handleDiscoveryChange}
                                 disabled={loading}
                             />
-                            <button
-                                className="btn btn-primary btn-big"
-                                onClick={roll}
-                                disabled={loading}
-                            >
-                                {loading ? 'Rolling…' : 'Next album'}
-                            </button>
+                            {flowMode === 'surprise' ? (
+                                <button
+                                    className="btn btn-primary btn-big"
+                                    onClick={() => roll()}
+                                    disabled={loading}
+                                >
+                                    {loading ? 'Rolling…' : 'Next album'}
+                                </button>
+                            ) : (
+                                <GenrePicker
+                                    selected={selectedGenre}
+                                    onPick={handlePickGenre}
+                                    disabled={loading}
+                                />
+                            )}
                         </div>
 
                         {error && <div className="error">{error}</div>}
                         {album && <AlbumCard album={album} />}
                         {!album && !error && (
                             <p className="hint">
-                                Click &quot;Next album&quot; to get a suggestion.
+                                {flowMode === 'surprise'
+                                    ? 'Click "Next album" to get a suggestion.'
+                                    : 'Pick a genre to get an album.'}
                             </p>
                         )}
                     </>
