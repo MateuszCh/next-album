@@ -21,14 +21,14 @@ reach the browser. The session lives in an encrypted, httpOnly cookie
    get an `API key` and `Shared secret`. In the app settings, set the **Callback
    URL** to `http://localhost:3000/api/auth/callback` (locally).
 2. Copy `.env.example` to `.env.local` and fill in:
-   - `LASTFM_API_KEY`, `LASTFM_SHARED_SECRET`
-   - `APP_URL` (locally `http://localhost:3000`)
-   - `SESSION_SECRET` — at least 32 chars, e.g. `openssl rand -base64 32`
+    - `LASTFM_API_KEY`, `LASTFM_SHARED_SECRET`
+    - `APP_URL` (locally `http://localhost:3000`)
+    - `SESSION_SECRET` — at least 32 chars, e.g. `openssl rand -base64 32`
 3. Install and run:
-   ```bash
-   npm install
-   npm run dev
-   ```
+    ```bash
+    npm install
+    npm run dev
+    ```
 4. Open <http://localhost:3000>, log in with Last.fm, and roll albums.
 
 ## Access control

@@ -8,7 +8,7 @@ let lastRequestAt = 0;
 let queue: Promise<unknown> = Promise.resolve();
 
 function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -16,16 +16,16 @@ function sleep(ms: number): Promise<void> {
  * Calls are queued (FIFO).
  */
 export function rateLimited<T>(fn: () => Promise<T>): Promise<T> {
-  const result = queue.then(async () => {
-    const wait = lastRequestAt + MIN_INTERVAL_MS - Date.now();
-    if (wait > 0) await sleep(wait);
-    lastRequestAt = Date.now();
-    return fn();
-  });
-  // keep the chain alive regardless of any single request failing
-  queue = result.then(
-    () => undefined,
-    () => undefined,
-  );
-  return result as Promise<T>;
+    const result = queue.then(async () => {
+        const wait = lastRequestAt + MIN_INTERVAL_MS - Date.now();
+        if (wait > 0) await sleep(wait);
+        lastRequestAt = Date.now();
+        return fn();
+    });
+    // keep the chain alive regardless of any single request failing
+    queue = result.then(
+        () => undefined,
+        () => undefined,
+    );
+    return result as Promise<T>;
 }
