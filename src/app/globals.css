@@ -234,15 +234,6 @@ button {
     opacity: 0.6;
 }
 
-.genre-chip .for-you-star {
-    color: var(--accent);
-    font-size: 0.7rem;
-}
-
-.genre-chip.selected .for-you-star {
-    color: #fff;
-}
-
 .slider-row {
     margin-bottom: 1.25rem;
 }
