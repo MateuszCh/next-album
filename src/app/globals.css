@@ -105,7 +105,8 @@ button {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.75rem;
     margin-bottom: 2.5rem;
     /* Reserve the chip/button height so the logo doesn't jump when the session
      (and avatar) loads after the initial render. */
@@ -115,7 +116,16 @@ button {
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-left: auto;
+    gap: 0.5rem;
+}
+
+.topbar-toggles {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* ---------- Logo ---------- */
@@ -408,6 +418,115 @@ button {
     gap: 0.5rem;
 }
 
+/* Mobile custom dropdown alternative to the chip grid (shown via media query). */
+.genre-dropdown {
+    display: none;
+    position: relative;
+}
+
+.genre-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.genre-dropdown-trigger:hover:not(:disabled) {
+    border-color: var(--text-dim);
+}
+
+.genre-dropdown-trigger:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.genre-dropdown-trigger .placeholder {
+    color: var(--text-dim);
+}
+
+.genre-dropdown-chevron {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    transition: transform 0.18s ease;
+}
+
+.genre-dropdown-chevron.open {
+    transform: rotate(180deg);
+}
+
+.genre-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    margin: 0;
+    padding: 0.35rem;
+    list-style: none;
+    max-height: 15rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.genre-dropdown-menu li {
+    margin: 0;
+}
+
+.genre-dropdown-menu button {
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.65rem 0.85rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+        background 0.12s ease,
+        color 0.12s ease;
+}
+
+.genre-dropdown-menu button:hover {
+    background: var(--accent-soft);
+}
+
+.genre-dropdown-menu button.selected {
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+/* Themed scrollbar for the menu */
+.genre-dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.genre-dropdown-menu::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+}
+
 .genre-chip {
     display: inline-flex;
     align-items: center;
@@ -662,4 +781,55 @@ input[type='range']:disabled {
 
 .footer a:hover {
     color: var(--text);
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 560px) {
+    /* Two rows: logo centered on top, then avatar + lock/logout on the left and
+       theme + language on the right. */
+    .topbar {
+        row-gap: 1.25rem;
+    }
+
+    .logo {
+        flex: 1 0 100%;
+        justify-content: center;
+    }
+
+    .topbar-actions {
+        flex: 1 0 100%;
+        justify-content: space-between;
+        margin-left: 0;
+        gap: 0.4rem;
+    }
+
+    /* Keep the toggles on the right even when there's no user chip (logged out). */
+    .topbar-toggles {
+        margin-left: auto;
+    }
+
+    /* Drop the username label (the avatar still identifies the session). */
+    .user-chip {
+        gap: 0.4rem;
+    }
+
+    .user-chip > span {
+        display: none;
+    }
+
+    .topbar-actions .btn-ghost {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Genre picker: dropdown instead of the chip grid. */
+    .genre-grid {
+        display: none;
+    }
+
+    .genre-dropdown {
+        display: block;
+    }
 }

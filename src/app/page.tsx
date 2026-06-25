@@ -142,8 +142,10 @@ export default function Home() {
                             )}
                         </div>
                     )}
-                    <LanguageToggle />
-                    <ThemeToggle />
+                    <div className="topbar-toggles">
+                        <ThemeToggle />
+                        <LanguageToggle />
+                    </div>
                 </div>
             </div>
 

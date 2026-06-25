@@ -33,6 +33,7 @@ const en: Dict = {
     'flow.surprise': 'Surprise me',
     'flow.genre': 'By genre',
     'flow.aria': 'Recommendation mode',
+    'genre.placeholder': 'Pick a genre…',
 
     'slider.favorites': 'Favorites',
     'slider.discovery': 'Discovery',
@@ -97,6 +98,7 @@ const pl: Dict = {
     'flow.surprise': 'Zaskocz mnie',
     'flow.genre': 'Wg gatunku',
     'flow.aria': 'Tryb rekomendacji',
+    'genre.placeholder': 'Wybierz gatunek…',
 
     'slider.favorites': 'Ulubione',
     'slider.discovery': 'Odkrywanie',
