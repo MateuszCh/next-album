@@ -1,4 +1,21 @@
 <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="7" fill="#e8821a"/>
-  <path d="M13 10.5 L22 16 L13 21.5 Z" fill="#1a1206"/>
+  <defs>
+    <radialGradient id="cd" cx="44%" cy="38%" r="64%">
+      <stop offset="0%" stop-color="#fdfefe"/>
+      <stop offset="40%" stop-color="#d3dae1"/>
+      <stop offset="72%" stop-color="#a9b2bd"/>
+      <stop offset="100%" stop-color="#ccd3da"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3fd0ff" stop-opacity="0.55"/>
+      <stop offset="38%" stop-color="#b070ff" stop-opacity="0.35"/>
+      <stop offset="68%" stop-color="#ffd36b" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#3fd0ff" stop-opacity="0.30"/>
+    </linearGradient>
+  </defs>
+  <circle cx="16" cy="16" r="14" fill="url(#cd)" stroke="#7e8893" stroke-width="0.6"/>
+  <circle cx="16" cy="16" r="14" fill="url(#sheen)"/>
+  <circle cx="16" cy="16" r="6" fill="none" stroke="#9aa3ad" stroke-width="0.7"/>
+  <circle cx="16" cy="16" r="4.4" fill="#eef2f5"/>
+  <circle cx="16" cy="16" r="2.1" fill="#fbfdfe" stroke="#9aa3ad" stroke-width="0.5"/>
 </svg>

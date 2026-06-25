@@ -8,6 +8,9 @@ import { GenrePicker } from '@/components/GenrePicker';
 import { AlbumCard } from '@/components/AlbumCard';
 import { Logo, LogoMark } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { useI18n } from '@/components/LanguageProvider';
+import { errorMessage } from '@/lib/i18n';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
@@ -18,6 +21,7 @@ interface Me {
 }
 
 export default function Home() {
+    const { t } = useI18n();
     const [me, setMe] = useState<Me | null>(null);
     const [discovery, setDiscovery] = useState(0.5);
     const [flowMode, setFlowMode] = useState<FlowMode>('surprise');
@@ -54,13 +58,9 @@ export default function Home() {
         const params = new URLSearchParams(window.location.search);
         const err = params.get('error');
         if (err) {
-            const messages: Record<string, string> = {
-                not_allowed:
-                    'This Last.fm account does not have access to the app. Ask the owner to add you to the allowlist.',
-                auth_failed: 'Last.fm login failed. Please try again.',
-                missing_token: 'Missing authorization token. Please try logging in again.',
-            };
-            setError(messages[err] ?? 'A login error occurred.');
+            // Store the error *code*; it's localized at render time so it follows
+            // a language switch.
+            setError(err);
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, []);
@@ -79,11 +79,12 @@ export default function Home() {
                 if (genre) params.set('genre', genre);
                 const res = await fetch(`/api/recommend?${params.toString()}`);
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error ?? 'Server error.');
+                // On error `data.error` is a code; store it and localize at render.
+                if (!res.ok) throw new Error(data.error ?? 'generic');
                 setAlbum(data as AlbumRecommendation);
                 window.localStorage.setItem('lastAlbum', JSON.stringify(data));
             } catch (e) {
-                setError(e instanceof Error ? e.message : 'Something went wrong.');
+                setError(e instanceof Error ? e.message : 'generic');
             } finally {
                 setLoading(false);
             }
@@ -131,44 +132,38 @@ export default function Home() {
                             {me.loggedIn && <span>{me.username}</span>}
                             {me.gateEnabled && (
                                 <button className="btn btn-ghost" onClick={lock}>
-                                    Lock
+                                    {t('btn.lock')}
                                 </button>
                             )}
                             {me.loggedIn && (
                                 <button className="btn btn-ghost" onClick={logout}>
-                                    Log out
+                                    {t('btn.logout')}
                                 </button>
                             )}
                         </div>
                     )}
+                    <LanguageToggle />
                     <ThemeToggle />
                 </div>
             </div>
 
             <div className="container">
                 {me === null ? (
-                    <p className="subtitle">Loading…</p>
+                    <p className="subtitle">{t('loading')}</p>
                 ) : !me.loggedIn ? (
                     <div className="hero">
                         <span className="hero-mark">
                             <LogoMark />
                         </span>
-                        <h1 className="title">What should you listen to?</h1>
-                        <p className="subtitle">
-                            Log in with your Last.fm account and we&apos;ll pick a specific album to
-                            play — sometimes a favorite classic, sometimes something new from an
-                            artist similar to yours.
-                        </p>
+                        <h1 className="title">{t('loggedOut.title')}</h1>
+                        <p className="subtitle">{t('loggedOut.subtitle')}</p>
                         <LoginButton />
-                        {error && <div className="error">{error}</div>}
+                        {error && <div className="error">{errorMessage(t, error)}</div>}
                     </div>
                 ) : (
                     <>
-                        <h1 className="title">Hi, {me.username}</h1>
-                        <p className="subtitle">
-                            Set the balance and get your next album. The more &quot;discovery&quot;,
-                            the more often we suggest something new beyond your history.
-                        </p>
+                        <h1 className="title">{t('loggedIn.title', { username: me.username ?? '' })}</h1>
+                        <p className="subtitle">{t('loggedIn.subtitle')}</p>
 
                         <div className="controls">
                             <FlowToggle
@@ -187,7 +182,7 @@ export default function Home() {
                                     onClick={() => roll()}
                                     disabled={loading}
                                 >
-                                    {loading ? 'Rolling…' : 'Next Album'}
+                                    {loading ? t('btn.rolling') : t('btn.next')}
                                 </button>
                             ) : (
                                 <GenrePicker
@@ -198,13 +193,11 @@ export default function Home() {
                             )}
                         </div>
 
-                        {error && <div className="error">{error}</div>}
+                        {error && <div className="error">{errorMessage(t, error)}</div>}
                         {album && <AlbumCard album={album} />}
                         {!album && !error && (
                             <p className="hint">
-                                {flowMode === 'surprise'
-                                    ? 'Click "Next Album" to get a suggestion.'
-                                    : 'Pick a genre to get an album.'}
+                                {flowMode === 'surprise' ? t('hint.surprise') : t('hint.genre')}
                             </p>
                         )}
                     </>
@@ -213,7 +206,7 @@ export default function Home() {
 
             <footer className="footer">
                 <a href="https://www.last.fm/" target="_blank" rel="noreferrer">
-                    Powered by AudioScrobbler / Last.fm
+                    {t('footer.poweredBy')}
                 </a>
             </footer>
         </main>

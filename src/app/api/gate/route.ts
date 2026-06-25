@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const ip = clientIp(req);
     if (isLocked(ip)) {
-        return NextResponse.json({ error: 'Too many attempts. Try again later.' }, { status: 429 });
+        return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
     }
 
     const body = (await req.json().catch(() => ({}))) as { password?: string };
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     const expected = await gateToken();
     if (!tokensEqual(submitted, expected)) {
         recordFailure(ip);
-        return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
+        return NextResponse.json({ error: 'wrong_password' }, { status: 401 });
     }
 
     attempts.delete(ip);

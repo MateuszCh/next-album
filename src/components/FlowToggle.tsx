@@ -1,5 +1,7 @@
 'use client';
 
+import { useI18n } from '@/components/LanguageProvider';
+
 export type FlowMode = 'surprise' | 'genre';
 
 interface Props {
@@ -9,8 +11,9 @@ interface Props {
 }
 
 export function FlowToggle({ value, onChange, disabled }: Props) {
+    const { t } = useI18n();
     return (
-        <div className="flow-toggle" role="tablist" aria-label="Recommendation mode">
+        <div className="flow-toggle" role="tablist" aria-label={t('flow.aria')}>
             <button
                 role="tab"
                 aria-selected={value === 'surprise'}
@@ -18,7 +21,7 @@ export function FlowToggle({ value, onChange, disabled }: Props) {
                 onClick={() => onChange('surprise')}
                 disabled={disabled}
             >
-                Surprise me
+                {t('flow.surprise')}
             </button>
             <button
                 role="tab"
@@ -27,7 +30,7 @@ export function FlowToggle({ value, onChange, disabled }: Props) {
                 onClick={() => onChange('genre')}
                 disabled={disabled}
             >
-                By genre
+                {t('flow.genre')}
             </button>
         </div>
     );

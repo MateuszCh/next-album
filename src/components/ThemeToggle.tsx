@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/components/LanguageProvider';
 
 type Theme = 'light' | 'dark';
 
@@ -28,6 +29,7 @@ const MoonIcon = () => (
 );
 
 export function ThemeToggle() {
+    const { t } = useI18n();
     // Start as null so SSR and first client render match the inline-script-set
     // attribute; we read the real value once mounted.
     const [theme, setTheme] = useState<Theme | null>(null);
@@ -49,8 +51,8 @@ export function ThemeToggle() {
             type="button"
             className="btn-icon"
             onClick={toggle}
-            aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
-            title={theme === 'light' ? 'Dark theme' : 'Light theme'}
+            aria-label={theme === 'light' ? t('theme.toDark') : t('theme.toLight')}
+            title={theme === 'light' ? t('theme.toDark') : t('theme.toLight')}
         >
             {theme === 'light' ? <SunIcon /> : <MoonIcon />}
         </button>

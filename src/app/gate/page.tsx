@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/components/LanguageProvider';
+import { errorMessage } from '@/lib/i18n';
 
 export default function GatePage() {
+    const { t } = useI18n();
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -19,11 +22,12 @@ export default function GatePage() {
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                throw new Error(data.error ?? 'Could not enter.');
+                // data.error is a code; localize at render.
+                throw new Error(data.error ?? 'gate_failed');
             }
             window.location.href = '/';
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Something went wrong.');
+            setError(err instanceof Error ? err.message : 'generic');
             setLoading(false);
         }
     }
@@ -31,16 +35,13 @@ export default function GatePage() {
     return (
         <main className="page">
             <div className="container">
-                <h1 className="title">Access restricted</h1>
-                <p className="subtitle">
-                    This app is available only to invited people. Enter the access password to
-                    continue.
-                </p>
+                <h1 className="title">{t('gate.title')}</h1>
+                <p className="subtitle">{t('gate.subtitle')}</p>
                 <form onSubmit={submit} className="gate-form">
                     <input
                         type="password"
                         className="gate-input"
-                        placeholder="Access password"
+                        placeholder={t('gate.placeholder')}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         autoFocus
@@ -50,15 +51,15 @@ export default function GatePage() {
                         className="btn btn-primary btn-big"
                         disabled={loading || !password}
                     >
-                        {loading ? 'Checking…' : 'Enter'}
+                        {loading ? t('gate.checking') : t('gate.enter')}
                     </button>
                 </form>
-                {error && <div className="error">{error}</div>}
+                {error && <div className="error">{errorMessage(t, error)}</div>}
             </div>
 
             <footer className="footer">
                 <a href="https://www.last.fm/" target="_blank" rel="noreferrer">
-                    Powered by AudioScrobbler / Last.fm
+                    {t('footer.poweredBy')}
                 </a>
             </footer>
         </main>

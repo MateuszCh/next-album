@@ -63,7 +63,7 @@ async function recommendRediscovery(profile: Profile): Promise<AlbumRecommendati
         url: chosen.url,
         imageUrl,
         mode: 'rediscovery',
-        reason: `From your favorites — played ${chosen.playcount}×.`,
+        reason: { kind: 'rediscovery', playcount: Number(chosen.playcount) || 0 },
         playcount: Number(chosen.playcount) || null,
     };
 }
@@ -131,7 +131,7 @@ async function recommendDiscovery(profile: Profile): Promise<AlbumRecommendation
             url,
             imageUrl: cover,
             mode: 'discovery',
-            reason: `Something new — similar to "${seed.name}", who you listen to.`,
+            reason: { kind: 'discovery', seedName: seed.name },
             playcount: null,
         };
     }
@@ -176,7 +176,7 @@ async function recommendGenreFavorites(
         url: chosen.url,
         imageUrl,
         mode: 'rediscovery',
-        reason: `From your favorites in ${label} — played ${chosen.playcount}×.`,
+        reason: { kind: 'rediscovery_genre', genre: label, playcount: Number(chosen.playcount) || 0 },
         playcount: Number(chosen.playcount) || null,
         genre: label,
     };
@@ -230,7 +230,7 @@ async function recommendGenreDiscovery(
         url,
         imageUrl: cover,
         mode: 'discovery',
-        reason: `Something new in ${label}.`,
+        reason: { kind: 'discovery_genre', genre: label },
         playcount: null,
         genre: label,
     };

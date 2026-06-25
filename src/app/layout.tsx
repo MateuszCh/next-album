@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
 import './globals.css';
+import { LanguageProvider } from '@/components/LanguageProvider';
 
 const inter = Inter({
     subsets: ['latin'],
@@ -17,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-    title: 'next album',
+    title: 'Next Album',
     description: 'A random album to listen to, picked based on your Last.fm profile.',
 };
 
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <head>
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
             </head>
-            <body>{children}</body>
+            <body>
+                <LanguageProvider>{children}</LanguageProvider>
+            </body>
         </html>
     );
 }

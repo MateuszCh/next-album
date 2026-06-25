@@ -1,5 +1,7 @@
 // Shared Last.fm response types (only the fields we use).
 
+import type { AlbumReason } from '@/lib/i18n';
+
 export interface LastfmImage {
     '#text': string;
     size: 'small' | 'medium' | 'large' | 'extralarge' | 'mega' | '';
@@ -67,7 +69,8 @@ export interface AlbumRecommendation {
     url: string;
     imageUrl: string | null;
     mode: 'rediscovery' | 'discovery';
-    reason: string;
+    // Structured so the client can localize it; string accepted for legacy cache.
+    reason: AlbumReason | string;
     playcount: number | null;
     genre?: string;
 }
