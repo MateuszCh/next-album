@@ -32,6 +32,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-    // Skip Next.js static assets and images.
-    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+    // Skip Next.js static assets, images and the app icons (so the favicon
+    // loads even on the gate/login screen).
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon).*)'],
 };

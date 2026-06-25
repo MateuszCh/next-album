@@ -6,6 +6,8 @@ import { ModeSlider } from '@/components/ModeSlider';
 import { FlowToggle, type FlowMode } from '@/components/FlowToggle';
 import { GenrePicker } from '@/components/GenrePicker';
 import { AlbumCard } from '@/components/AlbumCard';
+import { Logo, LogoMark } from '@/components/Logo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
@@ -121,32 +123,36 @@ export default function Home() {
     return (
         <main className="page">
             <div className="topbar">
-                <div className="brand">
-                    next<span>·</span>album
+                <Logo />
+                <div className="topbar-actions">
+                    {me && (me.loggedIn || me.gateEnabled) && (
+                        <div className="user-chip">
+                            {me.loggedIn && me.imageUrl && <img src={me.imageUrl} alt="" />}
+                            {me.loggedIn && <span>{me.username}</span>}
+                            {me.gateEnabled && (
+                                <button className="btn btn-ghost" onClick={lock}>
+                                    Lock
+                                </button>
+                            )}
+                            {me.loggedIn && (
+                                <button className="btn btn-ghost" onClick={logout}>
+                                    Log out
+                                </button>
+                            )}
+                        </div>
+                    )}
+                    <ThemeToggle />
                 </div>
-                {me && (me.loggedIn || me.gateEnabled) && (
-                    <div className="user-chip">
-                        {me.loggedIn && me.imageUrl && <img src={me.imageUrl} alt="" />}
-                        {me.loggedIn && <span>{me.username}</span>}
-                        {me.gateEnabled && (
-                            <button className="btn btn-ghost" onClick={lock}>
-                                Lock
-                            </button>
-                        )}
-                        {me.loggedIn && (
-                            <button className="btn btn-ghost" onClick={logout}>
-                                Log out
-                            </button>
-                        )}
-                    </div>
-                )}
             </div>
 
             <div className="container">
                 {me === null ? (
                     <p className="subtitle">Loading…</p>
                 ) : !me.loggedIn ? (
-                    <>
+                    <div className="hero">
+                        <span className="hero-mark">
+                            <LogoMark />
+                        </span>
                         <h1 className="title">What should you listen to?</h1>
                         <p className="subtitle">
                             Log in with your Last.fm account and we&apos;ll pick a specific album to
@@ -155,7 +161,7 @@ export default function Home() {
                         </p>
                         <LoginButton />
                         {error && <div className="error">{error}</div>}
-                    </>
+                    </div>
                 ) : (
                     <>
                         <h1 className="title">Hi, {me.username}</h1>
@@ -181,7 +187,7 @@ export default function Home() {
                                     onClick={() => roll()}
                                     disabled={loading}
                                 >
-                                    {loading ? 'Rolling…' : 'Next album'}
+                                    {loading ? 'Rolling…' : 'Next Album'}
                                 </button>
                             ) : (
                                 <GenrePicker
@@ -197,7 +203,7 @@ export default function Home() {
                         {!album && !error && (
                             <p className="hint">
                                 {flowMode === 'surprise'
-                                    ? 'Click "Next album" to get a suggestion.'
+                                    ? 'Click "Next Album" to get a suggestion.'
                                     : 'Pick a genre to get an album.'}
                             </p>
                         )}
