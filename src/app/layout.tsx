@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, Space_Grotesk } from 'next/font/google';
+import { cookies } from 'next/headers';
 import './globals.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
+import type { Lang } from '@/lib/i18n';
 
 const inter = Inter({
     subsets: ['latin'],
@@ -25,10 +27,13 @@ export const metadata: Metadata = {
 // Runs before paint to apply the saved theme and avoid a flash of the wrong one.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();`;
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+    const stored = (await cookies()).get('lang')?.value;
+    const initialLang: Lang = stored === 'pl' || stored === 'en' ? stored : 'en';
+
     return (
         <html
-            lang="en"
+            lang={initialLang}
             data-theme="dark"
             className={`${inter.variable} ${spaceGrotesk.variable}`}
             suppressHydrationWarning
@@ -37,7 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
             </head>
             <body>
-                <LanguageProvider>{children}</LanguageProvider>
+                <LanguageProvider initialLang={initialLang}>{children}</LanguageProvider>
             </body>
         </html>
     );
