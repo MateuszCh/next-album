@@ -27,9 +27,11 @@ key never reach the browser. Import alias: `@/*` → `src/*`.
 
 ### Request flow
 
-`src/app/page.tsx` (client) → `POST /api/recommend` → `recommendAlbum()` in
+`src/app/page.tsx` (client) → `GET /api/recommend?discovery=<0–1>&genre=<tag>` →
+`recommendAlbum()` (or `recommendByGenre()` when `genre` is present) in
 `src/lib/recommend/engine.ts`. The route reads the username from the encrypted
-session cookie; the client never sends identity.
+session cookie; the client never sends identity, only the slider value and an
+optional curated genre tag (validated server-side via `isKnownGenre`).
 
 ### Recommendation engine (`src/lib/recommend/`)
 
@@ -48,6 +50,14 @@ yields nothing, it falls back to the other mode.
 user's profile (top albums/artists + recent tracks) is fetched once and cached
 1h per username via `loadProfile`, so repeated rolls are instant and cheap.
 
+**Genre mode** (`recommendByGenre`) does the same discovery/rediscovery coin
+flip but scoped to a curated genre from `genres.ts` (a fixed `{tag, label}` list,
+not Last.fm's noisy top tags). `recommendGenreFavorites` intersects the user's
+top albums with the genre's top artists (`tag.getTopArtists`);
+`recommendGenreDiscovery` picks from the genre's top albums (`tag.getTopAlbums`)
+dropping known artists, weighted by list position since tag albums carry no
+playcount. Both fall back to the other mode if one is empty.
+
 ### Last.fm client (`src/lib/lastfm/`)
 
 `client.ts` is the only place that talks HTTP to `ws.audioscrobbler.com`:
@@ -59,9 +69,19 @@ user's profile (top albums/artists + recent tracks) is fetched once and cached
   enforcing ~250ms spacing (single server IP shares Last.fm's ~5 req/s limit),
   plus retry-with-backoff on rate-limit (error 29 / HTTP 429).
 
-`user.ts` / `artist.ts` / `album.ts` are typed wrappers over specific Last.fm
-methods; `types.ts` holds the response shapes. `pickImage` selects the largest
-image from Last.fm's image array.
+`user.ts` / `artist.ts` / `album.ts` / `tag.ts` are typed wrappers over specific
+Last.fm methods; `types.ts` holds the response shapes. `pickImage` selects the
+largest image from Last.fm's image array.
+
+### Internationalization (`src/lib/i18n.ts`)
+
+Dependency-free client i18n: a flat `pl`/`en` dictionary plus an interpolating
+`translate`. `LanguageProvider` seeds from a `lang` cookie the server reads in
+`layout.tsx`, so SSR and first client render match (no EN→PL flash). `setLang`
+writes the cookie (1y) for the next server render. Recommendation reasons are
+returned from the API as a structured `AlbumReason` union and translated on the
+client, so switching language re-renders an already-shown album's reason without
+a refetch.
 
 ### Cover art (`src/lib/coverart.ts`)
 
