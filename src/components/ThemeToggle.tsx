@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useI18n } from '@/components/LanguageProvider';
-
-type Theme = 'light' | 'dark';
+import { useTheme } from '@/components/ThemeProvider';
 
 const SunIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden xmlns="http://www.w3.org/2000/svg">
@@ -30,21 +28,9 @@ const MoonIcon = () => (
 
 export function ThemeToggle() {
     const { t } = useI18n();
-    // Start as null so SSR and first client render match the inline-script-set
-    // attribute; we read the real value once mounted.
-    const [theme, setTheme] = useState<Theme | null>(null);
+    const { theme, setTheme } = useTheme();
 
-    useEffect(() => {
-        const current = (document.documentElement.dataset.theme as Theme) ?? 'dark';
-        setTheme(current);
-    }, []);
-
-    const toggle = () => {
-        const next: Theme = theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.dataset.theme = next;
-        window.localStorage.setItem('theme', next);
-        setTheme(next);
-    };
+    const toggle = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
     return (
         <button
