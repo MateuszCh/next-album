@@ -2,7 +2,15 @@
 
 import { useI18n } from '@/components/LanguageProvider';
 
-export type FlowMode = 'surprise' | 'genre';
+export type FlowMode = 'surprise' | 'genre' | 'mood' | 'decade' | 'current';
+
+const MODES: { mode: FlowMode; key: string }[] = [
+    { mode: 'surprise', key: 'flow.surprise' },
+    { mode: 'current', key: 'flow.current' },
+    { mode: 'genre', key: 'flow.genre' },
+    { mode: 'mood', key: 'flow.mood' },
+    { mode: 'decade', key: 'flow.decade' },
+];
 
 interface Props {
     value: FlowMode;
@@ -14,24 +22,18 @@ export function FlowToggle({ value, onChange, disabled }: Props) {
     const { t } = useI18n();
     return (
         <div className="flow-toggle" role="tablist" aria-label={t('flow.aria')}>
-            <button
-                role="tab"
-                aria-selected={value === 'surprise'}
-                className={value === 'surprise' ? 'active' : ''}
-                onClick={() => onChange('surprise')}
-                disabled={disabled}
-            >
-                {t('flow.surprise')}
-            </button>
-            <button
-                role="tab"
-                aria-selected={value === 'genre'}
-                className={value === 'genre' ? 'active' : ''}
-                onClick={() => onChange('genre')}
-                disabled={disabled}
-            >
-                {t('flow.genre')}
-            </button>
+            {MODES.map(({ mode, key }) => (
+                <button
+                    key={mode}
+                    role="tab"
+                    aria-selected={value === mode}
+                    className={value === mode ? 'active' : ''}
+                    onClick={() => onChange(mode)}
+                    disabled={disabled}
+                >
+                    {t(key)}
+                </button>
+            ))}
         </div>
     );
 }

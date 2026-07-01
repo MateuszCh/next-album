@@ -27,11 +27,14 @@ key never reach the browser. Import alias: `@/*` → `src/*`.
 
 ### Request flow
 
-`src/app/page.tsx` (client) → `GET /api/recommend?discovery=<0–1>&genre=<tag>` →
-`recommendAlbum()` (or `recommendByGenre()` when `genre` is present) in
-`src/lib/recommend/engine.ts`. The route reads the username from the encrypted
-session cookie; the client never sends identity, only the slider value and an
-optional curated genre tag (validated server-side via `isKnownGenre`).
+`src/app/page.tsx` (client) → `GET /api/recommend?discovery=<0–1>&dimension=<…>&tag=<…>`
+→ `recommendAlbum()` by default; `recommendByTag()` when `dimension` is a tag
+dimension (`genre`/`mood`/`decade`, with a `tag`); `recommendCurrent()` when
+`dimension=current`. All in `src/lib/recommend/engine.ts`. The route reads the
+username from the encrypted session cookie; the client never sends identity, only
+the slider value and an optional dimension + curated tag (validated server-side
+via `isKnownGenre`/`isKnownMood`/`isKnownDecade`). The legacy `genre=<tag>` param
+is still accepted and mapped to `dimension=genre`.
 
 ### Recommendation engine (`src/lib/recommend/`)
 
@@ -50,13 +53,25 @@ yields nothing, it falls back to the other mode.
 user's profile (top albums/artists + recent tracks) is fetched once and cached
 1h per username via `loadProfile`, so repeated rolls are instant and cheap.
 
-**Genre mode** (`recommendByGenre`) does the same discovery/rediscovery coin
-flip but scoped to a curated genre from `genres.ts` (a fixed `{tag, label}` list,
-not Last.fm's noisy top tags). `recommendGenreFavorites` intersects the user's
-top albums with the genre's top artists (`tag.getTopArtists`);
-`recommendGenreDiscovery` picks from the genre's top albums (`tag.getTopAlbums`)
-dropping known artists, weighted by list position since tag albums carry no
-playcount. Both fall back to the other mode if one is empty.
+**Tag-dimension modes** (`recommendByTag`) do the same discovery/rediscovery
+coin flip but scoped to a curated Last.fm tag. Three dimensions share this one
+pipeline, each a fixed `{tag, label}` list (not Last.fm's noisy top tags):
+genre (`genres.ts`), mood (`moods.ts`) and decade (`decades.ts`).
+`recommendGenreFavorites` intersects the user's top albums with the tag's top
+artists (`tag.getTopArtists`); `recommendGenreDiscovery` picks from the tag's top
+albums (`tag.getTopAlbums`) dropping known artists, weighted by list position
+since tag albums carry no playcount. Both fall back to the other mode if one is
+empty.
+
+**"Right now" mode** (`recommendCurrent`) anchors the same coin flip to this
+week's listening (`user.getWeeklyArtistChart`, cached 1h): favorites whose artist
+is in the weekly chart, or discovery seeded from those artists (via the shared
+`discoverFromSeeds`). Falls back to the standard mix when there's no weekly data.
+
+**History & saved albums** are client-only (`src/lib/history.ts`, localStorage):
+every roll is pushed to a capped history list, and the star on `AlbumCard`
+toggles an album into a saved list. `HistoryPanel` shows both and re-displays a
+past album without a refetch (recommendations are JSON-serializable).
 
 ### Last.fm client (`src/lib/lastfm/`)
 

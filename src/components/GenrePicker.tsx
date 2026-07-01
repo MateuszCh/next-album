@@ -1,21 +1,29 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { GENRES } from '@/lib/recommend/genres';
-import { useI18n } from '@/components/LanguageProvider';
+
+interface Item {
+    tag: string;
+    label: string;
+}
 
 interface Props {
+    items: Item[];
     selected: string | null;
     onPick: (tag: string) => void;
+    placeholder: string;
     disabled?: boolean;
 }
 
-export function GenrePicker({ selected, onPick, disabled }: Props) {
-    const { t } = useI18n();
+/**
+ * Generic tag picker used for the genre / mood / decade dimensions. Desktop
+ * shows a chip grid; mobile (via media query) swaps to a scrollable dropdown.
+ */
+export function GenrePicker({ items, selected, onPick, placeholder, disabled }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
-    const selectedLabel = GENRES.find((g) => g.tag === selected)?.label ?? null;
+    const selectedLabel = items.find((g) => g.tag === selected)?.label ?? null;
 
     // Close on outside click / Escape.
     useEffect(() => {
@@ -43,7 +51,7 @@ export function GenrePicker({ selected, onPick, disabled }: Props) {
         <>
             {/* Desktop: chip grid */}
             <div className="genre-grid">
-                {GENRES.map((g) => (
+                {items.map((g) => (
                     <button
                         key={g.tag}
                         type="button"
@@ -67,7 +75,7 @@ export function GenrePicker({ selected, onPick, disabled }: Props) {
                     aria-expanded={open}
                 >
                     <span className={selectedLabel ? '' : 'placeholder'}>
-                        {selectedLabel ?? t('genre.placeholder')}
+                        {selectedLabel ?? placeholder}
                     </span>
                     <svg
                         className={`genre-dropdown-chevron${open ? ' open' : ''}`}
@@ -86,7 +94,7 @@ export function GenrePicker({ selected, onPick, disabled }: Props) {
                 </button>
                 {open && (
                     <ul className="genre-dropdown-menu" role="listbox">
-                        {GENRES.map((g) => (
+                        {items.map((g) => (
                             <li key={g.tag} role="option" aria-selected={selected === g.tag}>
                                 <button
                                     type="button"

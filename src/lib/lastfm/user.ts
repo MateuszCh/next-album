@@ -1,5 +1,11 @@
 import { lastfmGet } from './client';
-import type { LastfmTopAlbum, LastfmTopArtist, LastfmRecentTrack, LastfmImage } from './types';
+import type {
+    LastfmTopAlbum,
+    LastfmTopArtist,
+    LastfmRecentTrack,
+    LastfmWeeklyArtist,
+    LastfmImage,
+} from './types';
 
 export function pickImage(images: LastfmImage[] | undefined): string | null {
     if (!images || images.length === 0) return null;
@@ -90,6 +96,21 @@ export async function getRecentTracks(username: string, limit = 200): Promise<La
         limit,
     });
     return data.recenttracks?.track ?? [];
+}
+
+interface WeeklyArtistChartResponse {
+    weeklyartistchart?: { artist: LastfmWeeklyArtist[] };
+}
+
+/**
+ * The user's artist chart for the most recent complete week — what they've been
+ * spinning lately, used by the "Right now" recommendation mode.
+ */
+export async function getWeeklyArtistChart(username: string): Promise<LastfmWeeklyArtist[]> {
+    const data = await lastfmGet<WeeklyArtistChartResponse>('user.getWeeklyArtistChart', {
+        user: username,
+    });
+    return data.weeklyartistchart?.artist ?? [];
 }
 
 interface UserInfoResponse {

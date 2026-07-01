@@ -14,7 +14,9 @@ export type AlbumReason =
     | { kind: 'rediscovery'; playcount: number }
     | { kind: 'discovery'; seedName: string }
     | { kind: 'rediscovery_genre'; genre: string; playcount: number }
-    | { kind: 'discovery_genre'; genre: string };
+    | { kind: 'discovery_genre'; genre: string }
+    | { kind: 'current_favorite'; playcount: number }
+    | { kind: 'current_discovery'; seedName: string };
 
 type Dict = Record<string, string>;
 
@@ -32,8 +34,13 @@ const en: Dict = {
 
     'flow.surprise': 'Surprise me',
     'flow.genre': 'By genre',
+    'flow.mood': 'By mood',
+    'flow.decade': 'By decade',
+    'flow.current': 'Right now',
     'flow.aria': 'Recommendation mode',
     'genre.placeholder': 'Pick a genre…',
+    'mood.placeholder': 'Pick a mood…',
+    'decade.placeholder': 'Pick a decade…',
 
     'slider.favorites': 'Favorites',
     'slider.discovery': 'Discovery',
@@ -46,15 +53,28 @@ const en: Dict = {
 
     'hint.surprise': 'Click “Next Album” to get a suggestion.',
     'hint.genre': 'Pick a genre to get an album.',
+    'hint.mood': 'Pick a mood to get an album.',
+    'hint.decade': 'Pick a decade to get an album.',
+    'hint.current': 'Click “Next Album” for something tied to this week.',
 
     'card.discovery': 'Discovery',
     'card.favorites': 'From favorites',
     'card.coverAlt': 'Cover: {name}',
+    'card.save': 'Save album',
+    'card.unsave': 'Remove from saved',
+
+    'history.title': 'Recent',
+    'history.saved': 'Saved',
+    'history.emptyHistory': 'Albums you roll will show up here.',
+    'history.emptySaved': 'Save an album with the star to keep it here.',
+    'history.remove': 'Remove',
 
     'reason.rediscovery': 'From your favorites — played {playcount}×.',
     'reason.discovery': 'Something new — similar to “{seed}”, who you listen to.',
     'reason.rediscovery_genre': 'From your favorites in {genre} — played {playcount}×.',
     'reason.discovery_genre': 'Something new in {genre}.',
+    'reason.current_favorite': 'From what you’re into this week — played {playcount}×.',
+    'reason.current_discovery': 'Fresh pick from “{seed}”, who you’re spinning this week.',
 
     'theme.toLight': 'Switch to light theme',
     'theme.toDark': 'Switch to dark theme',
@@ -97,8 +117,13 @@ const pl: Dict = {
 
     'flow.surprise': 'Zaskocz mnie',
     'flow.genre': 'Wg gatunku',
+    'flow.mood': 'Wg nastroju',
+    'flow.decade': 'Wg dekady',
+    'flow.current': 'Teraz',
     'flow.aria': 'Tryb rekomendacji',
     'genre.placeholder': 'Wybierz gatunek…',
+    'mood.placeholder': 'Wybierz nastrój…',
+    'decade.placeholder': 'Wybierz dekadę…',
 
     'slider.favorites': 'Ulubione',
     'slider.discovery': 'Odkrywanie',
@@ -111,15 +136,28 @@ const pl: Dict = {
 
     'hint.surprise': 'Kliknij „Następny album”, aby otrzymać propozycję.',
     'hint.genre': 'Wybierz gatunek, aby otrzymać album.',
+    'hint.mood': 'Wybierz nastrój, aby otrzymać album.',
+    'hint.decade': 'Wybierz dekadę, aby otrzymać album.',
+    'hint.current': 'Kliknij „Następny album”, aby dostać coś z tego tygodnia.',
 
     'card.discovery': 'Odkrycie',
     'card.favorites': 'Z ulubionych',
     'card.coverAlt': 'Okładka: {name}',
+    'card.save': 'Zapisz album',
+    'card.unsave': 'Usuń z zapisanych',
+
+    'history.title': 'Ostatnie',
+    'history.saved': 'Zapisane',
+    'history.emptyHistory': 'Wylosowane albumy pojawią się tutaj.',
+    'history.emptySaved': 'Zapisz album gwiazdką, aby go tu zatrzymać.',
+    'history.remove': 'Usuń',
 
     'reason.rediscovery': 'Z Twoich ulubionych — odtworzono {playcount}×.',
     'reason.discovery': 'Coś nowego — podobne do „{seed}”, którego słuchasz.',
     'reason.rediscovery_genre': 'Z Twoich ulubionych w {genre} — odtworzono {playcount}×.',
     'reason.discovery_genre': 'Coś nowego w {genre}.',
+    'reason.current_favorite': 'Z tego, czym żyjesz w tym tygodniu — odtworzono {playcount}×.',
+    'reason.current_discovery': 'Świeży typ od „{seed}”, którego słuchasz w tym tygodniu.',
 
     'theme.toLight': 'Przełącz na jasny motyw',
     'theme.toDark': 'Przełącz na ciemny motyw',
@@ -179,6 +217,10 @@ export function formatReason(t: TFn, reason: AlbumReason | string): string {
             });
         case 'discovery_genre':
             return t('reason.discovery_genre', { genre: reason.genre });
+        case 'current_favorite':
+            return t('reason.current_favorite', { playcount: reason.playcount });
+        case 'current_discovery':
+            return t('reason.current_discovery', { seed: reason.seedName });
     }
 }
 

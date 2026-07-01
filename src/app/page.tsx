@@ -6,11 +6,16 @@ import { ModeSlider } from '@/components/ModeSlider';
 import { FlowToggle, type FlowMode } from '@/components/FlowToggle';
 import { GenrePicker } from '@/components/GenrePicker';
 import { AlbumCard } from '@/components/AlbumCard';
+import { HistoryPanel } from '@/components/HistoryPanel';
 import { Logo, LogoMark } from '@/components/Logo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { errorMessage } from '@/lib/i18n';
+import { GENRES } from '@/lib/recommend/genres';
+import { MOODS } from '@/lib/recommend/moods';
+import { DECADES } from '@/lib/recommend/decades';
+import { getHistory, getSaved, pushHistory, toggleSaved } from '@/lib/history';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
@@ -20,15 +25,32 @@ interface Me {
     gateEnabled?: boolean;
 }
 
+type TagDimension = 'genre' | 'mood' | 'decade';
+
+const FLOW_MODES: FlowMode[] = ['surprise', 'genre', 'mood', 'decade', 'current'];
+
+// Picker config per tag dimension — the curated list and its placeholder key.
+const PICKERS: Record<TagDimension, { items: { tag: string; label: string }[]; placeholder: string }> = {
+    genre: { items: GENRES, placeholder: 'genre.placeholder' },
+    mood: { items: MOODS, placeholder: 'mood.placeholder' },
+    decade: { items: DECADES, placeholder: 'decade.placeholder' },
+};
+
 export default function Home() {
     const { t } = useI18n();
     const [me, setMe] = useState<Me | null>(null);
     const [discovery, setDiscovery] = useState(0.5);
     const [flowMode, setFlowMode] = useState<FlowMode>('surprise');
-    const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+    const [selected, setSelected] = useState<Record<TagDimension, string | null>>({
+        genre: null,
+        mood: null,
+        decade: null,
+    });
     const [album, setAlbum] = useState<AlbumRecommendation | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [history, setHistory] = useState<AlbumRecommendation[]>([]);
+    const [saved, setSaved] = useState<AlbumRecommendation[]>([]);
 
     useEffect(() => {
         fetch('/api/me')
@@ -51,9 +73,18 @@ export default function Home() {
             }
         }
 
-        if (window.localStorage.getItem('flowMode') === 'genre') setFlowMode('genre');
-        const storedGenre = window.localStorage.getItem('genre');
-        if (storedGenre) setSelectedGenre(storedGenre);
+        const storedFlow = window.localStorage.getItem('flowMode');
+        if (storedFlow && (FLOW_MODES as string[]).includes(storedFlow)) {
+            setFlowMode(storedFlow as FlowMode);
+        }
+        setSelected({
+            genre: window.localStorage.getItem('genre'),
+            mood: window.localStorage.getItem('mood'),
+            decade: window.localStorage.getItem('decade'),
+        });
+
+        setHistory(getHistory());
+        setSaved(getSaved());
 
         const params = new URLSearchParams(window.location.search);
         const err = params.get('error');
@@ -71,18 +102,21 @@ export default function Home() {
     }, []);
 
     const roll = useCallback(
-        async (genre?: string | null) => {
+        async (opts?: { dimension?: string; tag?: string }) => {
             setLoading(true);
             setError(null);
             try {
                 const params = new URLSearchParams({ discovery: String(discovery) });
-                if (genre) params.set('genre', genre);
+                if (opts?.dimension) params.set('dimension', opts.dimension);
+                if (opts?.tag) params.set('tag', opts.tag);
                 const res = await fetch(`/api/recommend?${params.toString()}`);
                 const data = await res.json();
                 // On error `data.error` is a code; store it and localize at render.
                 if (!res.ok) throw new Error(data.error ?? 'generic');
                 setAlbum(data as AlbumRecommendation);
                 window.localStorage.setItem('lastAlbum', JSON.stringify(data));
+                pushHistory(data as AlbumRecommendation);
+                setHistory(getHistory());
             } catch (e) {
                 setError(e instanceof Error ? e.message : 'generic');
             } finally {
@@ -97,14 +131,25 @@ export default function Home() {
         window.localStorage.setItem('flowMode', mode);
     }, []);
 
-    const handlePickGenre = useCallback(
-        (tag: string) => {
-            setSelectedGenre(tag);
-            window.localStorage.setItem('genre', tag);
-            roll(tag);
+    const handlePickTag = useCallback(
+        (dimension: TagDimension, tag: string) => {
+            setSelected((s) => ({ ...s, [dimension]: tag }));
+            window.localStorage.setItem(dimension, tag);
+            roll({ dimension, tag });
         },
         [roll],
     );
+
+    const showAlbum = useCallback((picked: AlbumRecommendation) => {
+        setAlbum(picked);
+        setError(null);
+        window.localStorage.setItem('lastAlbum', JSON.stringify(picked));
+    }, []);
+
+    const removeSaved = useCallback((picked: AlbumRecommendation) => {
+        toggleSaved(picked);
+        setSaved(getSaved());
+    }, []);
 
     const logout = useCallback(async () => {
         // Log out of Last.fm only — the gate stays unlocked. Full navigation so the
@@ -120,6 +165,8 @@ export default function Home() {
         await fetch('/api/gate', { method: 'DELETE' });
         window.location.href = '/';
     }, []);
+
+    const isPickerMode = flowMode === 'genre' || flowMode === 'mood' || flowMode === 'decade';
 
     return (
         <main className="page">
@@ -178,30 +225,37 @@ export default function Home() {
                                 onChange={handleDiscoveryChange}
                                 disabled={loading}
                             />
-                            {flowMode === 'surprise' ? (
+                            {isPickerMode ? (
+                                <GenrePicker
+                                    items={PICKERS[flowMode].items}
+                                    selected={selected[flowMode]}
+                                    placeholder={t(PICKERS[flowMode].placeholder)}
+                                    onPick={(tag) => handlePickTag(flowMode, tag)}
+                                    disabled={loading}
+                                />
+                            ) : (
                                 <button
                                     className="btn btn-primary btn-big"
-                                    onClick={() => roll()}
+                                    onClick={() =>
+                                        roll(flowMode === 'current' ? { dimension: 'current' } : undefined)
+                                    }
                                     disabled={loading}
                                 >
                                     {loading ? t('btn.rolling') : t('btn.next')}
                                 </button>
-                            ) : (
-                                <GenrePicker
-                                    selected={selectedGenre}
-                                    onPick={handlePickGenre}
-                                    disabled={loading}
-                                />
                             )}
                         </div>
 
                         {error && <div className="error">{errorMessage(t, error)}</div>}
-                        {album && <AlbumCard album={album} />}
-                        {!album && !error && (
-                            <p className="hint">
-                                {flowMode === 'surprise' ? t('hint.surprise') : t('hint.genre')}
-                            </p>
-                        )}
+                        {album && <AlbumCard album={album} onSavedChange={() => setSaved(getSaved())} />}
+                        {!album && !error && <p className="hint">{t(`hint.${flowMode}`)}</p>}
+
+                        <HistoryPanel
+                            history={history}
+                            saved={saved}
+                            onPick={showAlbum}
+                            onRemoveSaved={removeSaved}
+                        />
                     </>
                 )}
             </div>
