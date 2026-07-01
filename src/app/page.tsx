@@ -15,7 +15,15 @@ import { errorMessage } from '@/lib/i18n';
 import { GENRES } from '@/lib/recommend/genres';
 import { MOODS } from '@/lib/recommend/moods';
 import { DECADES } from '@/lib/recommend/decades';
-import { getHistory, getSaved, pushHistory, toggleSaved } from '@/lib/history';
+import {
+    albumKey,
+    fetchUserData,
+    isSaved,
+    pushHistory,
+    removeSaved as removeSavedRemote,
+    setLastAlbum,
+    toggleSaved,
+} from '@/lib/history';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
@@ -55,22 +63,24 @@ export default function Home() {
     useEffect(() => {
         fetch('/api/me')
             .then((r) => r.json())
-            .then((data: Me) => setMe(data))
+            .then((data: Me) => {
+                setMe(data);
+                // Load the user's stored data (last album, history, saved) from the
+                // DB only once we know they're logged in.
+                if (data.loggedIn) {
+                    fetchUserData().then((ud) => {
+                        if (ud.lastAlbum) setAlbum(ud.lastAlbum);
+                        setHistory(ud.history);
+                        setSaved(ud.saved);
+                    });
+                }
+            })
             .catch(() => setMe({ loggedIn: false }));
 
         const stored = window.localStorage.getItem('discovery');
         if (stored !== null) {
             const value = Number(stored);
             if (Number.isFinite(value)) setDiscovery(Math.min(1, Math.max(0, value)));
-        }
-
-        const storedAlbum = window.localStorage.getItem('lastAlbum');
-        if (storedAlbum) {
-            try {
-                setAlbum(JSON.parse(storedAlbum) as AlbumRecommendation);
-            } catch {
-                window.localStorage.removeItem('lastAlbum');
-            }
         }
 
         const storedFlow = window.localStorage.getItem('flowMode');
@@ -82,9 +92,6 @@ export default function Home() {
             mood: window.localStorage.getItem('mood'),
             decade: window.localStorage.getItem('decade'),
         });
-
-        setHistory(getHistory());
-        setSaved(getSaved());
 
         const params = new URLSearchParams(window.location.search);
         const err = params.get('error');
@@ -114,9 +121,8 @@ export default function Home() {
                 // On error `data.error` is a code; store it and localize at render.
                 if (!res.ok) throw new Error(data.error ?? 'generic');
                 setAlbum(data as AlbumRecommendation);
-                window.localStorage.setItem('lastAlbum', JSON.stringify(data));
-                pushHistory(data as AlbumRecommendation);
-                setHistory(getHistory());
+                const nextHistory = await pushHistory(data as AlbumRecommendation);
+                if (nextHistory) setHistory(nextHistory);
             } catch (e) {
                 setError(e instanceof Error ? e.message : 'generic');
             } finally {
@@ -143,19 +149,35 @@ export default function Home() {
     const showAlbum = useCallback((picked: AlbumRecommendation) => {
         setAlbum(picked);
         setError(null);
-        window.localStorage.setItem('lastAlbum', JSON.stringify(picked));
+        setLastAlbum(picked);
+    }, []);
+
+    // Toggle the shown album in/out of saved. Optimistic: update local state
+    // immediately, then reconcile with the server's authoritative list.
+    const toggleSave = useCallback((picked: AlbumRecommendation) => {
+        const key = albumKey(picked);
+        setSaved((current) =>
+            current.some((a) => albumKey(a) === key)
+                ? current.filter((a) => albumKey(a) !== key)
+                : [picked, ...current],
+        );
+        toggleSaved(picked).then((res) => {
+            if (res) setSaved(res.saved);
+        });
     }, []);
 
     const removeSaved = useCallback((picked: AlbumRecommendation) => {
-        toggleSaved(picked);
-        setSaved(getSaved());
+        const key = albumKey(picked);
+        setSaved((current) => current.filter((a) => albumKey(a) !== key));
+        removeSavedRemote(picked).then((next) => {
+            if (next) setSaved(next);
+        });
     }, []);
 
     const logout = useCallback(async () => {
         // Log out of Last.fm only — the gate stays unlocked. Full navigation so the
         // logged-out state (login screen) is rendered fresh.
         await fetch('/api/auth/logout', { method: 'POST' });
-        window.localStorage.removeItem('lastAlbum');
         window.location.href = '/';
     }, []);
 
@@ -247,13 +269,20 @@ export default function Home() {
                         </div>
 
                         {error && <div className="error">{errorMessage(t, error)}</div>}
-                        {album && <AlbumCard album={album} onSavedChange={() => setSaved(getSaved())} />}
+                        {album && (
+                            <AlbumCard
+                                album={album}
+                                saved={isSaved(saved, album)}
+                                onToggleSave={() => toggleSave(album)}
+                            />
+                        )}
                         {!album && !error && <p className="hint">{t(`hint.${flowMode}`)}</p>}
 
                         <HistoryPanel
                             history={history}
                             saved={saved}
                             onPick={showAlbum}
+                            onToggleSave={toggleSave}
                             onRemoveSaved={removeSaved}
                         />
                     </>

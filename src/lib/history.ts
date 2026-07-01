@@ -1,73 +1,79 @@
-// Client-side history & bookmarks, backed by localStorage. `AlbumRecommendation`
-// is JSON-serializable (the existing `lastAlbum` cache already relies on this),
-// so we store whole recommendations and can re-show them without a refetch.
+// Client-side access to the user's stored data (last album, roll history, saved
+// albums). These are now persisted per user in MongoDB via `/api/user-data`, so
+// they follow the account across browsers and devices. Thin async wrappers over
+// fetch; the server owns dedup/cap and identity. Everything is best-effort — a
+// failed write is logged and swallowed so the UI keeps working.
 
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
-const HISTORY_KEY = 'history';
-const SAVED_KEY = 'saved';
-const HISTORY_CAP = 50;
+export interface UserData {
+    lastAlbum: AlbumRecommendation | null;
+    history: AlbumRecommendation[];
+    saved: AlbumRecommendation[];
+}
 
-/** Identity key for dedup — mirrors `albumKey` in the recommendation engine. */
-function albumKey(album: AlbumRecommendation): string {
+const EMPTY: UserData = { lastAlbum: null, history: [], saved: [] };
+
+/** Identity key — mirrors the server's `albumKey`. */
+export function albumKey(album: AlbumRecommendation): string {
     return `${album.artist}::${album.name}`.toLowerCase();
 }
 
-function read(key: string): AlbumRecommendation[] {
-    if (typeof window === 'undefined') return [];
+export function isSaved(saved: AlbumRecommendation[], album: AlbumRecommendation): boolean {
+    const key = albumKey(album);
+    return saved.some((a) => albumKey(a) === key);
+}
+
+/** Load the logged-in user's stored data. Returns empty data if unauthenticated. */
+export async function fetchUserData(): Promise<UserData> {
     try {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? (parsed as AlbumRecommendation[]) : [];
+        const res = await fetch('/api/user-data');
+        if (!res.ok) return { ...EMPTY };
+        return (await res.json()) as UserData;
     } catch {
-        return [];
+        return { ...EMPTY };
     }
 }
 
-function write(key: string, list: AlbumRecommendation[]): void {
-    if (typeof window === 'undefined') return;
+async function post<T>(body: unknown): Promise<T | null> {
     try {
-        window.localStorage.setItem(key, JSON.stringify(list));
+        const res = await fetch('/api/user-data', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) return null;
+        if (res.status === 204) return null;
+        return (await res.json()) as T;
     } catch {
-        // storage full / unavailable — ignore, history is best-effort
+        return null;
     }
 }
 
-export function getHistory(): AlbumRecommendation[] {
-    return read(HISTORY_KEY);
+/** Record a rolled album (prepends to history, sets it as last). Returns history. */
+export async function pushHistory(
+    album: AlbumRecommendation,
+): Promise<AlbumRecommendation[] | null> {
+    const res = await post<{ history: AlbumRecommendation[] }>({ action: 'push', album });
+    return res?.history ?? null;
 }
 
-/** Prepend an album to history (newest first), de-duplicated and capped. */
-export function pushHistory(album: AlbumRecommendation): void {
-    const key = albumKey(album);
-    const next = [album, ...read(HISTORY_KEY).filter((a) => albumKey(a) !== key)].slice(
-        0,
-        HISTORY_CAP,
-    );
-    write(HISTORY_KEY, next);
+export async function setLastAlbum(album: AlbumRecommendation): Promise<void> {
+    await post({ action: 'set-last', album });
 }
 
-export function getSaved(): AlbumRecommendation[] {
-    return read(SAVED_KEY);
+export async function toggleSaved(
+    album: AlbumRecommendation,
+): Promise<{ isSaved: boolean; saved: AlbumRecommendation[] } | null> {
+    return post<{ isSaved: boolean; saved: AlbumRecommendation[] }>({
+        action: 'toggle-saved',
+        album,
+    });
 }
 
-export function isSaved(album: AlbumRecommendation): boolean {
-    const key = albumKey(album);
-    return read(SAVED_KEY).some((a) => albumKey(a) === key);
-}
-
-/** Toggle an album in the saved list; returns the new saved state. */
-export function toggleSaved(album: AlbumRecommendation): boolean {
-    const key = albumKey(album);
-    const current = read(SAVED_KEY);
-    if (current.some((a) => albumKey(a) === key)) {
-        write(
-            SAVED_KEY,
-            current.filter((a) => albumKey(a) !== key),
-        );
-        return false;
-    }
-    write(SAVED_KEY, [album, ...current]);
-    return true;
+export async function removeSaved(
+    album: AlbumRecommendation,
+): Promise<AlbumRecommendation[] | null> {
+    const res = await post<{ saved: AlbumRecommendation[] }>({ action: 'remove-saved', album });
+    return res?.saved ?? null;
 }

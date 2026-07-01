@@ -939,6 +939,33 @@ input[type='range']:disabled {
     border-color: var(--text-dim);
 }
 
+.history-save {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    color: var(--text-dim);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition:
+        color 0.12s ease,
+        border-color 0.12s ease;
+}
+
+.history-save:hover {
+    color: var(--text);
+    border-color: var(--text-dim);
+}
+
+.history-save.saved {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
 /* ---------- Mobile ---------- */
 
 @media (max-width: 560px) {

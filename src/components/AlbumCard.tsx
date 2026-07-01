@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { upgradeLastfmImage } from '@/lib/coverart';
 import { formatReason } from '@/lib/i18n';
 import { useI18n } from '@/components/LanguageProvider';
-import { isSaved, toggleSaved } from '@/lib/history';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 const searchUrl = (artist: string, album: string, service: 'spotify' | 'ytm') => {
@@ -16,17 +15,20 @@ const searchUrl = (artist: string, album: string, service: 'spotify' | 'ytm') =>
 
 export function AlbumCard({
     album,
-    onSavedChange,
+    saved,
+    onToggleSave,
 }: {
     album: AlbumRecommendation;
-    onSavedChange?: () => void;
+    // Saved state is owned by the parent (backed by the DB); the card just renders
+    // it and reports toggles.
+    saved: boolean;
+    onToggleSave: () => void;
 }) {
     const { t } = useI18n();
     // Show the fast native cover immediately, then swap to the sharp 600x600
     // variant once it has loaded in the background (its cold CDN transform can
     // take a few seconds, but it no longer blocks showing the album).
     const [src, setSrc] = useState(album.imageUrl);
-    const [saved, setSaved] = useState(false);
 
     useEffect(() => {
         setSrc(album.imageUrl);
@@ -37,16 +39,6 @@ export function AlbumCard({
         preload.onload = () => setSrc(hiRes);
         preload.src = hiRes;
     }, [album.imageUrl]);
-
-    // Sync the saved state from localStorage whenever the shown album changes.
-    useEffect(() => {
-        setSaved(isSaved(album));
-    }, [album]);
-
-    const handleToggleSave = () => {
-        setSaved(toggleSaved(album));
-        onSavedChange?.();
-    };
 
     return (
         <div className="card">
@@ -66,7 +58,7 @@ export function AlbumCard({
                 <button
                     type="button"
                     className={`save-btn${saved ? ' saved' : ''}`}
-                    onClick={handleToggleSave}
+                    onClick={onToggleSave}
                     aria-pressed={saved}
                     aria-label={saved ? t('card.unsave') : t('card.save')}
                     title={saved ? t('card.unsave') : t('card.save')}
