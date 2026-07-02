@@ -24,6 +24,13 @@ export interface LastfmTopArtist {
     image: LastfmImage[];
 }
 
+export interface LastfmWeeklyArtist {
+    name: string;
+    playcount: string;
+    mbid?: string;
+    url: string;
+}
+
 export interface LastfmSimilarArtist {
     name: string;
     mbid?: string;

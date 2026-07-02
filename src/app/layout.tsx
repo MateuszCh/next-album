@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from 'next/font/google';
 import { cookies } from 'next/headers';
 import './globals.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
+import { ThemeProvider, type Theme } from '@/components/ThemeProvider';
 import type { Lang } from '@/lib/i18n';
 
 const inter = Inter({
@@ -24,25 +25,24 @@ export const metadata: Metadata = {
     description: 'A random album to listen to, picked based on your Last.fm profile.',
 };
 
-// Runs before paint to apply the saved theme and avoid a flash of the wrong one.
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');document.documentElement.dataset.theme=(t==='light'||t==='dark')?t:'dark';}catch(e){document.documentElement.dataset.theme='dark';}})();`;
-
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-    const stored = (await cookies()).get('lang')?.value;
-    const initialLang: Lang = stored === 'pl' || stored === 'en' ? stored : 'en';
+    const jar = await cookies();
+    const storedLang = jar.get('lang')?.value;
+    const initialLang: Lang = storedLang === 'pl' || storedLang === 'en' ? storedLang : 'en';
+    const storedTheme = jar.get('theme')?.value;
+    const initialTheme: Theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
 
     return (
         <html
             lang={initialLang}
-            data-theme="dark"
+            data-theme={initialTheme}
             className={`${inter.variable} ${spaceGrotesk.variable}`}
             suppressHydrationWarning
         >
-            <head>
-                <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-            </head>
-            <body>
-                <LanguageProvider initialLang={initialLang}>{children}</LanguageProvider>
+            <body suppressHydrationWarning>
+                <ThemeProvider initialTheme={initialTheme}>
+                    <LanguageProvider initialLang={initialLang}>{children}</LanguageProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

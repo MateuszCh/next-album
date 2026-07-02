@@ -1,0 +1,52 @@
+# Local development stack: the Next.js app (Node 24, dev mode) plus MongoDB.
+# One command brings up everything:
+#
+#   docker compose up            # start app + MongoDB (app on http://localhost:3000)
+#   docker compose up --build    # rebuild the app image (after dependency changes)
+#   docker compose down          # stop (data kept in the named volume)
+#   docker compose down -v       # stop and wipe the data
+#
+# The app connects to the `mongo` service over the compose network; the
+# MONGODB_URI below overrides whatever is in .env.local for the containerized run.
+# Production does NOT use this file — it reads MONGODB_URI from its own config.
+
+services:
+    web:
+        build:
+            context: .
+            target: dev
+        container_name: next-album-web
+        command: npm run dev -- -H 0.0.0.0
+        ports:
+            - '3000:3000'
+        env_file:
+            - .env.local
+        environment:
+            # Point at the mongo service (not localhost, which is the container itself).
+            MONGODB_URI: mongodb://mongo:27017
+            # Reliable hot reload for the bind-mounted source on macOS/Windows.
+            WATCHPACK_POLLING: 'true'
+        volumes:
+            - .:/app
+            # Keep the image's node_modules; don't let the host mount clobber it.
+            - /app/node_modules
+        depends_on:
+            mongo:
+                condition: service_healthy
+
+    mongo:
+        image: mongo:6
+        container_name: next-album-mongo
+        restart: unless-stopped
+        ports:
+            - '27017:27017'
+        volumes:
+            - mongo-data:/data/db
+        healthcheck:
+            test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    mongo-data:

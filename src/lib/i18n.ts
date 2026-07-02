@@ -2,6 +2,10 @@
 // interpolating lookup. No dependency — mirrors the existing localStorage-driven
 // preferences (theme, discovery, …).
 
+import { getGenre } from '@/lib/recommend/genres';
+import { getMood } from '@/lib/recommend/moods';
+import { getDecade } from '@/lib/recommend/decades';
+
 export type Lang = 'pl' | 'en';
 
 export const LANGS: Lang[] = ['en', 'pl'];
@@ -13,8 +17,13 @@ export type TranslateParams = Record<string, string | number>;
 export type AlbumReason =
     | { kind: 'rediscovery'; playcount: number }
     | { kind: 'discovery'; seedName: string }
+    | { kind: 'rediscovery_filtered'; filters: string[]; now: boolean; playcount: number }
+    | { kind: 'discovery_filtered'; filters: string[]; now: boolean; seedName?: string }
+    // Legacy kinds kept so albums saved before the unified filters still render.
     | { kind: 'rediscovery_genre'; genre: string; playcount: number }
-    | { kind: 'discovery_genre'; genre: string };
+    | { kind: 'discovery_genre'; genre: string }
+    | { kind: 'current_favorite'; playcount: number }
+    | { kind: 'current_discovery'; seedName: string };
 
 type Dict = Record<string, string>;
 
@@ -30,10 +39,28 @@ const en: Dict = {
     'loggedIn.subtitle':
         'Set the balance and get your next album. The more “discovery”, the more often we suggest something new beyond your history.',
 
-    'flow.surprise': 'Surprise me',
-    'flow.genre': 'By genre',
-    'flow.aria': 'Recommendation mode',
-    'genre.placeholder': 'Pick a genre…',
+    'filter.toggle': 'Filters',
+    'filter.show': 'Show filters',
+    'filter.hide': 'Hide filters',
+    'filter.reset': 'Clear',
+    'filter.genre': 'Genre',
+    'filter.mood': 'Mood',
+    'filter.decade': 'Decade',
+    'filter.now': 'Right now',
+    'filter.now.hint': 'Only artists you’re into this week',
+    'filter.selected': '{count} selected',
+    'genre.placeholder': 'Any genre',
+    'mood.placeholder': 'Any mood',
+    'decade.placeholder': 'Any decade',
+
+    'mood.chillout': 'Chill',
+    'mood.energetic': 'Energetic',
+    'mood.melancholy': 'Melancholic',
+    'mood.happy': 'Happy',
+    'mood.party': 'Party',
+    'mood.romantic': 'Romantic',
+    'mood.aggressive': 'Aggressive',
+    'mood.dreamy': 'Dreamy',
 
     'slider.favorites': 'Favorites',
     'slider.discovery': 'Discovery',
@@ -44,17 +71,30 @@ const en: Dict = {
     'btn.lock': 'Lock',
     'btn.logout': 'Log out',
 
-    'hint.surprise': 'Click “Next Album” to get a suggestion.',
-    'hint.genre': 'Pick a genre to get an album.',
+    'hint.default': 'Set the filters (or leave them empty) and click “Next Album”.',
 
     'card.discovery': 'Discovery',
     'card.favorites': 'From favorites',
     'card.coverAlt': 'Cover: {name}',
+    'card.save': 'Save album',
+    'card.unsave': 'Remove from saved',
+
+    'history.title': 'Recent',
+    'history.saved': 'Saved',
+    'history.emptyHistory': 'Albums you roll will show up here.',
+    'history.emptySaved': 'Save an album with the star to keep it here.',
+    'history.remove': 'Remove',
 
     'reason.rediscovery': 'From your favorites — played {playcount}×.',
     'reason.discovery': 'Something new — similar to “{seed}”, who you listen to.',
+    'reason.rediscovery_filtered': 'From your favorites ({scope}) — played {playcount}×.',
+    'reason.discovery_filtered': 'Something new ({scope}) — similar to “{seed}”.',
+    'reason.discovery_filtered_noseed': 'Something new ({scope}).',
+    'reason.scope_now': 'this week',
     'reason.rediscovery_genre': 'From your favorites in {genre} — played {playcount}×.',
     'reason.discovery_genre': 'Something new in {genre}.',
+    'reason.current_favorite': 'From what you’re into this week — played {playcount}×.',
+    'reason.current_discovery': 'Fresh pick from “{seed}”, who you’re spinning this week.',
 
     'theme.toLight': 'Switch to light theme',
     'theme.toDark': 'Switch to dark theme',
@@ -77,6 +117,7 @@ const en: Dict = {
     'error.missing_token': 'Missing authorization token. Please try logging in again.',
     'error.not_logged_in': 'You are not logged in.',
     'error.unknown_genre': 'Unknown genre.',
+    'error.no_matches': 'No albums match these filters. Try loosening them.',
     'error.pick_failed': 'Could not pick an album right now. Please try again.',
     'error.wrong_password': 'Wrong password.',
     'error.too_many_attempts': 'Too many attempts. Try again later.',
@@ -95,10 +136,28 @@ const pl: Dict = {
     'loggedIn.subtitle':
         'Ustaw balans i odbierz kolejny album. Im więcej „odkrywania”, tym częściej proponujemy coś nowego spoza Twojej historii.',
 
-    'flow.surprise': 'Zaskocz mnie',
-    'flow.genre': 'Wg gatunku',
-    'flow.aria': 'Tryb rekomendacji',
-    'genre.placeholder': 'Wybierz gatunek…',
+    'filter.toggle': 'Filtry',
+    'filter.show': 'Pokaż filtry',
+    'filter.hide': 'Ukryj filtry',
+    'filter.reset': 'Wyczyść',
+    'filter.genre': 'Gatunek',
+    'filter.mood': 'Nastrój',
+    'filter.decade': 'Dekada',
+    'filter.now': 'Teraz',
+    'filter.now.hint': 'Tylko artyści, których słuchasz w tym tygodniu',
+    'filter.selected': 'wybrano: {count}',
+    'genre.placeholder': 'Dowolny gatunek',
+    'mood.placeholder': 'Dowolny nastrój',
+    'decade.placeholder': 'Dowolna dekada',
+
+    'mood.chillout': 'Spokojny',
+    'mood.energetic': 'Energiczny',
+    'mood.melancholy': 'Melancholijny',
+    'mood.happy': 'Radosny',
+    'mood.party': 'Imprezowy',
+    'mood.romantic': 'Romantyczny',
+    'mood.aggressive': 'Agresywny',
+    'mood.dreamy': 'Marzycielski',
 
     'slider.favorites': 'Ulubione',
     'slider.discovery': 'Odkrywanie',
@@ -109,17 +168,30 @@ const pl: Dict = {
     'btn.lock': 'Zablokuj',
     'btn.logout': 'Wyloguj',
 
-    'hint.surprise': 'Kliknij „Następny album”, aby otrzymać propozycję.',
-    'hint.genre': 'Wybierz gatunek, aby otrzymać album.',
+    'hint.default': 'Ustaw filtry (lub zostaw puste) i kliknij „Następny album”.',
 
     'card.discovery': 'Odkrycie',
     'card.favorites': 'Z ulubionych',
     'card.coverAlt': 'Okładka: {name}',
+    'card.save': 'Zapisz album',
+    'card.unsave': 'Usuń z zapisanych',
+
+    'history.title': 'Ostatnie',
+    'history.saved': 'Zapisane',
+    'history.emptyHistory': 'Wylosowane albumy pojawią się tutaj.',
+    'history.emptySaved': 'Zapisz album gwiazdką, aby go tu zatrzymać.',
+    'history.remove': 'Usuń',
 
     'reason.rediscovery': 'Z Twoich ulubionych — odtworzono {playcount}×.',
     'reason.discovery': 'Coś nowego — podobne do „{seed}”, którego słuchasz.',
+    'reason.rediscovery_filtered': 'Z Twoich ulubionych ({scope}) — odtworzono {playcount}×.',
+    'reason.discovery_filtered': 'Coś nowego ({scope}) — podobne do „{seed}”.',
+    'reason.discovery_filtered_noseed': 'Coś nowego ({scope}).',
+    'reason.scope_now': 'w tym tygodniu',
     'reason.rediscovery_genre': 'Z Twoich ulubionych w {genre} — odtworzono {playcount}×.',
     'reason.discovery_genre': 'Coś nowego w {genre}.',
+    'reason.current_favorite': 'Z tego, czym żyjesz w tym tygodniu — odtworzono {playcount}×.',
+    'reason.current_discovery': 'Świeży typ od „{seed}”, którego słuchasz w tym tygodniu.',
 
     'theme.toLight': 'Przełącz na jasny motyw',
     'theme.toDark': 'Przełącz na ciemny motyw',
@@ -141,6 +213,7 @@ const pl: Dict = {
     'error.missing_token': 'Brak tokenu autoryzacji. Spróbuj zalogować się ponownie.',
     'error.not_logged_in': 'Nie jesteś zalogowany.',
     'error.unknown_genre': 'Nieznany gatunek.',
+    'error.no_matches': 'Brak albumów pasujących do tych filtrów. Poluzuj je.',
     'error.pick_failed': 'Nie udało się teraz wybrać albumu. Spróbuj ponownie.',
     'error.wrong_password': 'Błędne hasło.',
     'error.too_many_attempts': 'Zbyt wiele prób. Spróbuj ponownie później.',
@@ -164,6 +237,20 @@ export function detectLang(): Lang {
 
 export type TFn = (key: string, params?: TranslateParams) => string;
 
+/** Localized label for a filter tag (mood is translated, genre/decade are names). */
+function tagLabel(t: TFn, tag: string): string {
+    if (getMood(tag)) return t(`mood.${tag}`);
+    return getGenre(tag)?.label ?? getDecade(tag)?.label ?? tag;
+}
+
+/** Human phrase describing the applied filters, e.g. "Rock, Jazz · this week". */
+function filterScope(t: TFn, filters: string[], now: boolean): string {
+    const parts: string[] = [];
+    if (filters.length > 0) parts.push(filters.map((f) => tagLabel(t, f)).join(', '));
+    if (now) parts.push(t('reason.scope_now'));
+    return parts.join(' · ');
+}
+
 /** Translate a structured (or legacy string) recommendation reason. */
 export function formatReason(t: TFn, reason: AlbumReason | string): string {
     if (typeof reason === 'string') return reason; // legacy cached albums
@@ -172,6 +259,17 @@ export function formatReason(t: TFn, reason: AlbumReason | string): string {
             return t('reason.rediscovery', { playcount: reason.playcount });
         case 'discovery':
             return t('reason.discovery', { seed: reason.seedName });
+        case 'rediscovery_filtered':
+            return t('reason.rediscovery_filtered', {
+                scope: filterScope(t, reason.filters, reason.now),
+                playcount: reason.playcount,
+            });
+        case 'discovery_filtered': {
+            const scope = filterScope(t, reason.filters, reason.now);
+            return reason.seedName
+                ? t('reason.discovery_filtered', { scope, seed: reason.seedName })
+                : t('reason.discovery_filtered_noseed', { scope });
+        }
         case 'rediscovery_genre':
             return t('reason.rediscovery_genre', {
                 genre: reason.genre,
@@ -179,6 +277,10 @@ export function formatReason(t: TFn, reason: AlbumReason | string): string {
             });
         case 'discovery_genre':
             return t('reason.discovery_genre', { genre: reason.genre });
+        case 'current_favorite':
+            return t('reason.current_favorite', { playcount: reason.playcount });
+        case 'current_discovery':
+            return t('reason.current_discovery', { seed: reason.seedName });
     }
 }
 
