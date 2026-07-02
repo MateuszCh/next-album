@@ -43,7 +43,7 @@ export function HistoryPanel({ history, saved, onPick, onToggleSave, onRemoveSav
 
     return (
         <div className="history">
-            <div className="flow-toggle history-tabs" role="tablist">
+            <div className="history-tabs" role="tablist">
                 {tabs.map((tb) => (
                     <button
                         key={tb}

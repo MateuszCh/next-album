@@ -9,12 +9,16 @@ export interface Decade {
 }
 
 export const DECADES: Decade[] = [
+    { tag: '30s', label: "30s" },
+    { tag: '40s', label: "40s" },
+    { tag: '50s', label: "50s" },
     { tag: '60s', label: "60s" },
     { tag: '70s', label: "70s" },
     { tag: '80s', label: "80s" },
     { tag: '90s', label: "90s" },
     { tag: '2000s', label: "2000s" },
     { tag: '2010s', label: "2010s" },
+    { tag: '2020s', label: "2020s" },
 ];
 
 const DECADE_BY_TAG = new Map(DECADES.map((d) => [d.tag.toLowerCase(), d]));

@@ -9,21 +9,26 @@ interface Item {
 
 interface Props {
     items: Item[];
-    selected: string | null;
-    onPick: (tag: string) => void;
+    selected: string[];
+    onToggle: (tag: string) => void;
     placeholder: string;
     disabled?: boolean;
 }
 
 /**
- * Generic tag picker used for the genre / mood / decade dimensions. Desktop
- * shows a chip grid; mobile (via media query) swaps to a scrollable dropdown.
+ * Generic multi-select tag picker used for the genre / mood / decade filters.
+ * Desktop shows a chip grid; mobile (via media query) swaps to a scrollable
+ * dropdown that stays open so several tags can be toggled at once.
  */
-export function GenrePicker({ items, selected, onPick, placeholder, disabled }: Props) {
+export function GenrePicker({ items, selected, onToggle, placeholder, disabled }: Props) {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
-    const selectedLabel = items.find((g) => g.tag === selected)?.label ?? null;
+    const isSelected = (tag: string) => selected.includes(tag);
+    const selectedLabels = items
+        .filter((g) => selected.includes(g.tag))
+        .map((g) => g.label)
+        .join(', ');
 
     // Close on outside click / Escape.
     useEffect(() => {
@@ -42,11 +47,6 @@ export function GenrePicker({ items, selected, onPick, placeholder, disabled }: 
         };
     }, [open]);
 
-    const pick = (tag: string) => {
-        onPick(tag);
-        setOpen(false);
-    };
-
     return (
         <>
             {/* Desktop: chip grid */}
@@ -55,8 +55,9 @@ export function GenrePicker({ items, selected, onPick, placeholder, disabled }: 
                     <button
                         key={g.tag}
                         type="button"
-                        className={`genre-chip${selected === g.tag ? ' selected' : ''}`}
-                        onClick={() => onPick(g.tag)}
+                        aria-pressed={isSelected(g.tag)}
+                        className={`genre-chip${isSelected(g.tag) ? ' selected' : ''}`}
+                        onClick={() => onToggle(g.tag)}
                         disabled={disabled}
                     >
                         {g.label}
@@ -64,7 +65,7 @@ export function GenrePicker({ items, selected, onPick, placeholder, disabled }: 
                 ))}
             </div>
 
-            {/* Mobile: custom scrollable dropdown */}
+            {/* Mobile: custom scrollable dropdown (multi-select, stays open) */}
             <div className="genre-dropdown" ref={ref}>
                 <button
                     type="button"
@@ -74,8 +75,8 @@ export function GenrePicker({ items, selected, onPick, placeholder, disabled }: 
                     aria-haspopup="listbox"
                     aria-expanded={open}
                 >
-                    <span className={selectedLabel ? '' : 'placeholder'}>
-                        {selectedLabel ?? placeholder}
+                    <span className={selectedLabels ? '' : 'placeholder'}>
+                        {selectedLabels || placeholder}
                     </span>
                     <svg
                         className={`genre-dropdown-chevron${open ? ' open' : ''}`}
@@ -93,13 +94,13 @@ export function GenrePicker({ items, selected, onPick, placeholder, disabled }: 
                     </svg>
                 </button>
                 {open && (
-                    <ul className="genre-dropdown-menu" role="listbox">
+                    <ul className="genre-dropdown-menu" role="listbox" aria-multiselectable>
                         {items.map((g) => (
-                            <li key={g.tag} role="option" aria-selected={selected === g.tag}>
+                            <li key={g.tag} role="option" aria-selected={isSelected(g.tag)}>
                                 <button
                                     type="button"
-                                    className={selected === g.tag ? 'selected' : ''}
-                                    onClick={() => pick(g.tag)}
+                                    className={isSelected(g.tag) ? 'selected' : ''}
+                                    onClick={() => onToggle(g.tag)}
                                 >
                                     {g.label}
                                 </button>

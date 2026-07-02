@@ -376,47 +376,118 @@ button {
     box-shadow: var(--shadow);
 }
 
-.flow-toggle {
+/* Collapsible filters: a toggle header + the filter groups below it. */
+.filters-header {
     display: flex;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    margin-bottom: 1.25rem;
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    overflow-x: auto;
-    scrollbar-width: none;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0 1rem;
 }
 
-.flow-toggle::-webkit-scrollbar {
-    display: none;
-}
-
-.flow-toggle button {
+.filters-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     flex: 1;
-    white-space: nowrap;
-    border: none;
+    padding: 0.6rem 0.9rem;
     background: transparent;
-    color: var(--text-dim);
+    border: 2px solid var(--accent-soft);
+    border-radius: 999px;
+    color: var(--accent);
     font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
     font-size: 0.9rem;
     font-weight: 600;
-    padding: 0.55rem 1rem;
-    border-radius: 999px;
     cursor: pointer;
     transition:
-        background 0.15s ease,
-        color 0.15s ease;
+        color 0.15s ease,
+        border-color 0.15s ease;
 }
 
-.flow-toggle button.active {
+.filters-toggle:hover {
+    color: var(--accent-hover);
+    border-color: var(--accent);
+}
+
+.filters-toggle > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filters-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.4rem;
     background: var(--accent);
     color: var(--accent-contrast);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
-.flow-toggle button:disabled {
+.filters-chevron {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.15s ease;
+}
+
+.filters-reset {
+    flex-shrink: 0;
+    padding: 0.35rem 0.6rem;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.filters-reset:hover:not(:disabled) {
+    color: var(--text);
+}
+
+.filters-reset:disabled {
     cursor: default;
     opacity: 0.6;
+}
+
+.filters-chevron.open {
+    transform: rotate(180deg);
+}
+
+/* Filter groups (genre / mood / decade + the "now" toggle). */
+.filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    margin: 0 0 1.5rem;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-label {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+}
+
+.filter-now {
+    flex-direction: row;
+    align-items: center;
 }
 
 .genre-grid {
@@ -826,6 +897,46 @@ input[type='range']:disabled {
 
 .history-tabs {
     max-width: 280px;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    margin-bottom: 1.25rem;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.history-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.history-tabs button {
+    flex: 1;
+    white-space: nowrap;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.history-tabs button.active {
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.history-tabs button:disabled {
+    cursor: default;
+    opacity: 0.6;
 }
 
 .history-empty {

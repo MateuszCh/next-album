@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             className={`${inter.variable} ${spaceGrotesk.variable}`}
             suppressHydrationWarning
         >
-            <body>
+            <body suppressHydrationWarning>
                 <ThemeProvider initialTheme={initialTheme}>
                     <LanguageProvider initialLang={initialLang}>{children}</LanguageProvider>
                 </ThemeProvider>
