@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { LoginButton } from '@/components/LoginButton';
 import { ModeSlider } from '@/components/ModeSlider';
 import { GenrePicker } from '@/components/GenrePicker';
@@ -75,6 +75,9 @@ export default function Home() {
     const [error, setError] = useState<string | null>(null);
     const [history, setHistory] = useState<AlbumRecommendation[]>([]);
     const [saved, setSaved] = useState<AlbumRecommendation[]>([]);
+    // Monotonic id for the latest roll; an older in-flight response whose id no
+    // longer matches is ignored so it can't overwrite a newer album.
+    const rollId = useRef(0);
 
     useEffect(() => {
         fetch('/api/me')
@@ -123,6 +126,7 @@ export default function Home() {
     }, []);
 
     const roll = useCallback(async () => {
+        const id = ++rollId.current;
         setLoading(true);
         setError(null);
         try {
@@ -133,15 +137,18 @@ export default function Home() {
             if (now) params.set('now', '1');
             const res = await fetch(`/api/recommend?${params.toString()}`);
             const data = await res.json();
+            // A newer roll superseded this one — ignore the stale response.
+            if (id !== rollId.current) return;
             // On error `data.error` is a code; store it and localize at render.
             if (!res.ok) throw new Error(data.error ?? 'generic');
             setAlbum(data as AlbumRecommendation);
             const nextHistory = await pushHistory(data as AlbumRecommendation);
             if (nextHistory) setHistory(nextHistory);
         } catch (e) {
+            if (id !== rollId.current) return;
             setError(e instanceof Error ? e.message : 'generic');
         } finally {
-            setLoading(false);
+            if (id === rollId.current) setLoading(false);
         }
     }, [discovery, filters, now]);
 
@@ -373,6 +380,7 @@ export default function Home() {
                         {error && <div className="error">{errorMessage(t, error)}</div>}
                         {album && (
                             <AlbumCard
+                                key={albumKey(album)}
                                 album={album}
                                 saved={isSaved(saved, album)}
                                 onToggleSave={() => toggleSave(album)}

@@ -35,9 +35,19 @@ export function AlbumCard({
         if (!album.imageUrl) return;
         const hiRes = upgradeLastfmImage(album.imageUrl);
         if (hiRes === album.imageUrl) return;
+        // Cancel the preload on album change so a slow, stale hi-res load can't
+        // overwrite the current album's cover (its CDN transform can take a few
+        // seconds, easily outliving a rapid sequence of "next album" clicks).
+        let cancelled = false;
         const preload = new window.Image();
-        preload.onload = () => setSrc(hiRes);
+        preload.onload = () => {
+            if (!cancelled) setSrc(hiRes);
+        };
         preload.src = hiRes;
+        return () => {
+            cancelled = true;
+            preload.onload = null;
+        };
     }, [album.imageUrl]);
 
     return (
