@@ -983,9 +983,43 @@ input[type='range']:disabled {
     list-style: none;
     margin: 0;
     padding: 0;
+    padding-right: 0.35rem;
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    max-height: min(60vh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Chrome/Safari: styling ::-webkit-scrollbar forces a classic, always-visible
+   scrollbar (overriding macOS overlay bars that auto-hide). Note: do NOT also
+   set the standard `scrollbar-width`/`scrollbar-color` here — in modern Chrome
+   that makes these pseudo-elements be ignored. Firefox is handled separately
+   below. */
+.history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 999px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+}
+
+/* Firefox: no ::-webkit-scrollbar support, so theme via the standard props. */
+@supports not selector(::-webkit-scrollbar) {
+    .history-list {
+        scrollbar-width: thin;
+        scrollbar-color: var(--accent) transparent;
+    }
 }
 
 .history-item {
