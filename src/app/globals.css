@@ -15,6 +15,8 @@
     --error-text: #ffcaa6;
     --badge-bg: rgba(0, 0, 0, 0.6);
     --badge-text: #eef2ee;
+    --skeleton-base: #1c4a33;
+    --skeleton-highlight: #2f6a49;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     --glow: radial-gradient(60% 50% at 50% 0%, rgba(255, 180, 84, 0.13), transparent 70%);
     --radius: 16px;
@@ -37,6 +39,8 @@
     --error-text: #b23c10;
     --badge-bg: rgba(0, 0, 0, 0.55);
     --badge-text: #ffffff;
+    --skeleton-base: #e7e8eb;
+    --skeleton-highlight: #d2d4da;
     --shadow: 0 10px 30px rgba(40, 45, 55, 0.1);
     --glow: radial-gradient(60% 50% at 50% 0%, rgba(232, 130, 26, 0.12), transparent 70%);
 }
@@ -741,6 +745,35 @@ input[type='range']:disabled {
     justify-content: center;
     color: var(--text-dim);
     font-size: 3rem;
+}
+
+/* Shimmer placeholder shown over the cover while the image is still loading. */
+.cover-loader {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        90deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 50%,
+        var(--skeleton-base) 100%
+    );
+    background-size: 200% 100%;
+    animation: cover-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes cover-shimmer {
+    from {
+        background-position: 200% 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cover-loader {
+        animation: none;
+    }
 }
 
 .badge {

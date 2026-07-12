@@ -29,6 +29,9 @@ export function AlbumCard({
     // variant once it has loaded in the background (its cold CDN transform can
     // take a few seconds, but it no longer blocks showing the album).
     const [src, setSrc] = useState(album.imageUrl);
+    // Whether the visible cover has finished loading. Stays true once the first
+    // (low-res) image loads, so the later hi-res swap doesn't re-flash the loader.
+    const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
         setSrc(album.imageUrl);
@@ -54,8 +57,16 @@ export function AlbumCard({
         <div className="card">
             <div className="card-cover">
                 {src ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={src} alt={t('card.coverAlt', { name: album.name })} />
+                    <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={src}
+                            alt={t('card.coverAlt', { name: album.name })}
+                            onLoad={() => setLoaded(true)}
+                            onError={() => setLoaded(true)}
+                        />
+                        {!loaded && <div className="cover-loader" aria-hidden />}
+                    </>
                 ) : (
                     <div className="placeholder" aria-hidden>
                         ♪
