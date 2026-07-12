@@ -85,46 +85,54 @@ key never reach the browser. Import alias: `@/*` → `src/*`.
 
 ### Request flow
 
-`src/app/page.tsx` (client) → `GET /api/recommend?discovery=<0–1>&dimension=<…>&tag=<…>`
-→ `recommendAlbum()` by default; `recommendByTag()` when `dimension` is a tag
-dimension (`genre`/`mood`/`decade`, with a `tag`); `recommendCurrent()` when
-`dimension=current`. All in `src/lib/recommend/engine.ts`. The route reads the
-username from the encrypted session cookie; the client never sends identity, only
-the slider value and an optional dimension + curated tag (validated server-side
-via `isKnownGenre`/`isKnownMood`/`isKnownDecade`). The legacy `genre=<tag>` param
-is still accepted and mapped to `dimension=genre`.
+`src/app/page.tsx` (client) →
+`GET /api/recommend?discovery=<0–1>&genre=<…>&mood=<…>&decade=<…>&now=<1|true>`
+→ the single `recommend()` entry point in `src/lib/recommend/engine.ts`. The
+three tag dimensions are **multi-select lists**: each accepts repeated params
+(`?genre=a&genre=b`) or a comma-separated value (`?genre=a,b`), parsed by
+`parseTags` in the route. `now=1` scopes to this week's listening. The route
+reads the username from the encrypted session cookie; the client never sends
+identity, only the slider value + selected tags + `now`. Every tag is validated
+server-side (`isKnownGenre`/`isKnownMood`/`isKnownDecade`) and deduped, so the
+engine only ever sees curated tags. The legacy single-mode client
+(`dimension=<genre|mood|decade|current>` + `tag=<…>`) is still accepted and
+folded into the list/`now` params for back-compat. An over-narrow filter set
+returns `400 {error:'no_matches'}` (localized by the client); other failures
+return `502 {error:'pick_failed'}`.
 
 ### Recommendation engine (`src/lib/recommend/`)
 
-The core domain logic. `recommendAlbum(username, discovery)` takes a `discovery`
-value 0–1 (from the UI slider) and does a coin flip: `Math.random() < discovery`
-decides **discovery** vs **rediscovery** mode for that roll. If the chosen mode
-yields nothing, it falls back to the other mode.
+The core domain logic, with **one public entry point**:
+`recommend(username, { discovery, genres, moods, decades, now })`. Every roll is
+a coin flip: `Math.random() < discovery` picks **discovery** vs **favorites**
+(rediscovery) mode for that roll; if the chosen mode yields nothing it falls back
+to the other, then to `no_matches` when filters leave nothing. `weightedPick`
+(`weighted.ts`) is the shared weighted-random primitive. The user's profile (top
+albums/artists + recent tracks) is fetched once and cached 1h per username via
+`loadProfile`; weekly artists cache 1h via `loadWeeklyArtists`.
 
-- **Rediscovery** — weighted-random album from the user's top albums (weighted by
-  playcount), skipping albums in their last 25 recent tracks.
-- **Discovery** — weighted-random seed from top artists → Last.fm similar
-  artists → drop artists the user already listens to → weighted-random top album
-  of the picked artist. Retries up to 5 seeds if similar artists are empty/known.
+The two base modes (no filters):
 
-`weightedPick` (`weighted.ts`) is the shared weighted-random primitive. The
-user's profile (top albums/artists + recent tracks) is fetched once and cached
-1h per username via `loadProfile`, so repeated rolls are instant and cheap.
+- **Favorites/rediscovery** (`recommendFavorites`) — weighted-random album from
+  the user's top albums (weighted by playcount), skipping albums in their last 25
+  recent tracks.
+- **Discovery** (`discoverFromSeeds`) — weighted-random seed from top artists →
+  Last.fm similar artists → drop artists the user already listens to →
+  weighted-random top album of the picked artist. Retries up to 5 seeds if
+  similar artists are empty/known.
 
-**Tag-dimension modes** (`recommendByTag`) do the same discovery/rediscovery
-coin flip but scoped to a curated Last.fm tag. Three dimensions share this one
-pipeline, each a fixed `{tag, label}` list (not Last.fm's noisy top tags):
-genre (`genres.ts`), mood (`moods.ts`) and decade (`decades.ts`).
-`recommendGenreFavorites` intersects the user's top albums with the tag's top
-artists (`tag.getTopArtists`); `recommendGenreDiscovery` picks from the tag's top
-albums (`tag.getTopAlbums`) dropping known artists, weighted by list position
-since tag albums carry no playcount. Both fall back to the other mode if one is
-empty.
-
-**"Right now" mode** (`recommendCurrent`) anchors the same coin flip to this
-week's listening (`user.getWeeklyArtistChart`, cached 1h): favorites whose artist
-is in the weekly chart, or discovery seeded from those artists (via the shared
-`discoverFromSeeds`). Falls back to the standard mix when there's no weekly data.
+**Filters** narrow that same coin flip. `genres`/`moods`/`decades` are
+multi-select curated Last.fm tags — each a fixed `{tag, label}` list (not
+Last.fm's noisy top tags): `genres.ts`, `moods.ts`, `decades.ts`. Tag semantics
+are **OR within a dimension, AND across dimensions**: `unionTagArtists` unions
+each dimension's `tag.getTopArtists`, then `intersect` ANDs the dimensions into a
+single `tagArtists` set. `now` intersects further with this week's chart
+(`user.getWeeklyArtistChart`); if there's no weekly data it silently drops the
+`now` filter and degrades to the normal mix. With filters active, favorites is
+restricted to `tagArtists ∩ weeklySet`; discovery is seeded from the weekly
+artists when `now`, or drawn from the tags' top albums
+(`discoverFromTagAlbums`, weighted by list position since tag albums carry no
+playcount) when tags-only.
 
 **History & saved albums** are stored per user in MongoDB (keyed by the session
 username), not in the browser. Every roll is pushed to a capped (50) history list
@@ -136,7 +144,8 @@ list. `HistoryPanel` shows both and re-displays a past album without a refetch
 `push` / `set-last` / `toggle-saved` / `remove-saved`). The client wrappers in
 `src/lib/history.ts` are thin async fetch calls; `src/app/page.tsx` owns the
 saved state and passes it to `AlbumCard`. UI-only preferences (`discovery`,
-`flowMode`, `genre`/`mood`/`decade`) still live in localStorage.
+`now`, `filtersOpen`, and the `genre`/`mood`/`decade` tag lists) still live in
+localStorage.
 
 ### Database (`src/lib/db.ts`)
 
