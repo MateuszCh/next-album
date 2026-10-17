@@ -940,7 +940,6 @@ input[type='range']:disabled {
 
 .history-tabs,
 .mode-tabs {
-    max-width: 280px;
     display: flex;
     gap: 0.25rem;
     padding: 0.25rem;
@@ -988,7 +987,7 @@ input[type='range']:disabled {
 }
 
 /* Mode tabs (Last.fm / album search): the pill styling above, centered and
-   wider than the history tabs. */
+   capped; the history tabs span the full width of the list below them. */
 .mode-tabs {
     max-width: 360px;
     margin: 0 auto 1.75rem;
@@ -1057,6 +1056,9 @@ input[type='range']:disabled {
     align-items: center;
     gap: 0.75rem;
     text-align: left;
+    /* A <button> doesn't inherit the text color; without this the album name
+       falls back to the UA's black. */
+    color: var(--text);
     border: 1px solid var(--border);
     background: var(--bg-elev);
     border-radius: var(--radius-sm);
