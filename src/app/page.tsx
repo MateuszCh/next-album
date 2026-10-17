@@ -15,6 +15,7 @@ import { GENRES } from '@/lib/recommend/genres';
 import { DECADES } from '@/lib/recommend/decades';
 import { COUNTRIES } from '@/lib/recommend/countries';
 import { albumKey, guestStore, isSaved, mergeGuestData, remoteStore } from '@/lib/history';
+import { upgradeLastfmImage } from '@/lib/coverUrl';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
@@ -67,6 +68,23 @@ function readStoredTags(dimension: TagDimension): string[] {
     return tags.filter((tag) => PICKERS[dimension].items.some((item) => item.tag === tag));
 }
 
+function rollUrl(mode: AppMode, discovery: number, filters: Filters): string {
+    if (mode === 'lastfm') {
+        return `/api/recommend?${new URLSearchParams({ discovery: String(discovery) })}`;
+    }
+    const params = new URLSearchParams();
+    DIMENSIONS.forEach((dim) => filters[dim].forEach((tag) => params.append(dim, tag)));
+    return `/api/search?${params}`;
+}
+
+// A roll's response: the album, or an error code when the request failed.
+type RollResponse = { ok: true; data: AlbumRecommendation } | { ok: false; data: { error?: string } };
+
+async function fetchRoll(url: string): Promise<RollResponse> {
+    const res = await fetch(url);
+    return { ok: res.ok, data: await res.json() } as RollResponse;
+}
+
 export default function Home() {
     const { t } = useI18n();
     const [me, setMe] = useState<Me | null>(null);
@@ -81,6 +99,9 @@ export default function Home() {
     // Monotonic id for the latest roll; an older in-flight response whose id no
     // longer matches is ignored so it can't overwrite a newer album.
     const rollId = useRef(0);
+    // The next search roll, fetched in the background after one is shown so
+    // "roll again" is instant. Keyed by URL: a filter change makes it stale.
+    const prefetch = useRef<{ url: string; result: Promise<RollResponse | null> } | null>(null);
 
     const loggedIn = me?.loggedIn ?? false;
     // The Last.fm mode needs a Last.fm username, not just any account.
@@ -157,22 +178,34 @@ export default function Home() {
         setLoading(true);
         setError(null);
         try {
-            let url: string;
-            if (mode === 'lastfm') {
-                url = `/api/recommend?${new URLSearchParams({ discovery: String(discovery) })}`;
-            } else {
-                const params = new URLSearchParams();
-                DIMENSIONS.forEach((dim) => filters[dim].forEach((tag) => params.append(dim, tag)));
-                url = `/api/search?${params}`;
+            const url = rollUrl(mode, discovery, filters);
+            const prefetched = prefetch.current;
+            prefetch.current = null;
+            let res: RollResponse | null = null;
+            if (prefetched?.url === url) {
+                res = await prefetched.result;
+                // A failed prefetch, or one repeating the shown album, is refetched.
+                if (!res?.ok || (album && albumKey(res.data) === albumKey(album))) res = null;
             }
-            const res = await fetch(url);
-            const data = await res.json();
+            res ??= await fetchRoll(url);
             // A newer roll superseded this one — ignore the stale response.
             if (id !== rollId.current) return;
             // On error `data.error` is a code; store it and localize at render.
-            if (!res.ok) throw new Error(data.error ?? 'generic');
-            setAlbum(data as AlbumRecommendation);
-            const nextHistory = await store.push(data as AlbumRecommendation);
+            if (!res.ok) throw new Error(res.data.error ?? 'generic');
+            const picked = res.data;
+            setAlbum(picked);
+            if (mode === 'search') {
+                // Only search mode: a Last.fm prefetch would skip the server's
+                // recent-rolls check. Warm the next cover too (both sizes the card loads).
+                const result = fetchRoll(url).catch(() => null);
+                prefetch.current = { url, result };
+                result.then((next) => {
+                    if (!next?.ok || !next.data.imageUrl) return;
+                    new Image().src = next.data.imageUrl;
+                    new Image().src = upgradeLastfmImage(next.data.imageUrl);
+                });
+            }
+            const nextHistory = await store.push(picked);
             if (nextHistory) setHistory(nextHistory);
         } catch (e) {
             if (id !== rollId.current) return;
@@ -180,7 +213,7 @@ export default function Home() {
         } finally {
             if (id === rollId.current) setLoading(false);
         }
-    }, [mode, discovery, filters, store]);
+    }, [mode, discovery, filters, store, album]);
 
     const handleToggleTag = useCallback((dimension: TagDimension, tag: string) => {
         setFilters((f) => {

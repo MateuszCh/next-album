@@ -1,11 +1,12 @@
 import { lastfmGet } from './client';
 import { pickImage } from './user';
 import { cached } from '@/lib/cache';
+import { persistentCached } from '@/lib/persistentCache';
 import type { LastfmImage } from './types';
 
 // Album details are shared across users and practically static; both modes look
-// them up on every roll (covers, mbid), so cache them for a day.
-const ALBUM_TTL_MS = 24 * 60 * 60 * 1000;
+// them up on every roll (covers, mbid), so keep them for a week (memory + Mongo).
+const ALBUM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface AlbumInfoResponse {
     album?: {
@@ -29,7 +30,7 @@ export function getAlbumInfo(
     mbid: string | null;
     imageUrl: string | null;
 } | null> {
-    return cached(
+    return persistentCached(
         `albumInfo:${artist.toLowerCase()}:${album.toLowerCase()}`,
         async () => {
             const data = await lastfmGet<AlbumInfoResponse>('album.getInfo', {

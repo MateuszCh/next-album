@@ -3,7 +3,7 @@
 // detect it by known hashes and try a fallback to the Cover Art Archive (by
 // release mbid) when an mbid is available.
 
-import { cached } from '@/lib/cache';
+import { persistentCached } from '@/lib/persistentCache';
 import { getUserAgent } from '@/lib/userAgent';
 
 // Known Last.fm placeholder hashes (the star image).
@@ -18,29 +18,9 @@ export function isPlaceholderImage(url: string | null | undefined): boolean {
     return LASTFM_PLACEHOLDER_HASHES.some((h) => url.includes(h));
 }
 
-const LASTFM_CDN = 'lastfm.freetls.fastly.net';
-
-// Last.fm serves covers at 300x300 by default, but the CDN can re-render any
-// transform size. 600x600 is a sharp default for the card without pulling the
-// multi-MB original. Use "" to fetch the full-resolution original instead.
-const LASTFM_TARGET_SIZE = '600x600';
-
-/**
- * Last.fm CDN URLs look like `.../i/u/<size>/<hash>.<ext>`. We rewrite the
- * transform size (handling URLs with no size or several transform segments) to
- * a larger one, or drop it entirely for the original when target is "".
- */
-export function upgradeLastfmImage(url: string): string {
-    if (!url.includes(LASTFM_CDN)) return url;
-    const sizeSegment = LASTFM_TARGET_SIZE ? `${LASTFM_TARGET_SIZE}/` : '';
-    return url.replace(
-        /\/i\/u\/(?:.+\/)?([0-9a-f]+\.(?:png|jpe?g|gif|webp))(\?.*)?$/i,
-        `/i/u/${sizeSegment}$1$2`,
-    );
-}
-
-// Covers rarely change; the result (including "no cover") is cached for a day.
-const CAA_TTL_MS = 24 * 60 * 60 * 1000;
+// Covers rarely change; the result (including "no cover") is cached for a week
+// (memory + Mongo).
+const CAA_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CAA_TIMEOUT_MS = 5000;
 
 /**
@@ -56,7 +36,7 @@ const CAA_TIMEOUT_MS = 5000;
 function coverArtArchiveUrl(mbid: string): Promise<string | null> {
     // Only a definite answer is cached: network errors, timeouts and 503s throw
     // out of the loader (not cached) and count as "no cover" for this roll only.
-    return cached(
+    return persistentCached(
         `caa:${mbid}`,
         async () => {
             const url = `https://coverartarchive.org/release/${mbid}/front-500`;
@@ -84,7 +64,8 @@ function coverArtArchiveUrl(mbid: string): Promise<string | null> {
  * 300x300), which the Fastly CDN keeps warm everywhere, so it loads in ~100ms.
  * The bigger 600x600 transform is rendered on demand and is cold for most
  * albums (3s+ on a cache miss), so we don't force it here — the client upgrades
- * to the sharp variant progressively via `upgradeLastfmImage` once it loads.
+ * to the sharp variant progressively via `upgradeLastfmImage` (`coverUrl.ts`)
+ * once it loads.
  */
 export async function resolveCover(
     lastfmImage: string | null,

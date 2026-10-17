@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { upgradeLastfmImage } from '@/lib/coverart';
+import { upgradeLastfmImage } from '@/lib/coverUrl';
 import { albumKey } from '@/lib/history';
 import { useI18n } from '@/components/LanguageProvider';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';

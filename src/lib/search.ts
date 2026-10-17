@@ -3,7 +3,7 @@
 // roll draws one selected value per dimension), AND across dimensions (they
 // combine into one Discogs query).
 
-import { searchMasters, type DiscogsMaster } from '@/lib/discogs';
+import { getPageCount, searchMasters, type DiscogsMaster } from '@/lib/discogs';
 import { GENRES, getGenre } from '@/lib/recommend/genres';
 import { getDecade } from '@/lib/recommend/decades';
 import { getCountry } from '@/lib/recommend/countries';
@@ -124,13 +124,12 @@ async function toRecommendation(
 export async function searchAlbum(opts: SearchOptions): Promise<AlbumRecommendation> {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         const { query, tags } = drawQuery(opts);
-        const first = await searchMasters(query, 1);
-        const pages = Math.min(first.pagination.pages, MAX_PAGES);
+        const pages = Math.min(await getPageCount(query), MAX_PAGES);
         if (pages === 0) continue;
 
         const pageNumbers = Array.from({ length: pages }, (_, i) => i + 1);
         const page = weightedPick(pageNumbers, (p) => 1 / p) ?? 1;
-        const { results } = page === 1 ? first : await searchMasters(query, page);
+        const { results } = await searchMasters(query, page);
         const albums = results.filter((m) => m.title.includes(' - '));
         const master = weightedPick(albums, (m) => Math.sqrt(m.community?.have ?? 0) + 1);
         if (master) return await toRecommendation(master, tags);

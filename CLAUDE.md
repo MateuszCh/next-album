@@ -55,8 +55,8 @@ a real database (e.g. MongoDB Atlas, a managed instance, or a Mongo on the host)
 Callback URL must be `<APP_URL>/api/auth/callback`), `SESSION_SECRET` (≥32 chars),
 `MONGODB_URI`, `MONGODB_DB`, and optionally `DISCOGS_TOKEN`, `ACCESS_PASSWORD` /
 `ALLOWED_LASTFM_USERS`. Without `MONGODB_URI`/`MONGODB_DB` the app still boots but
-`/api/user-data` fails and history/saved/last-album stop persisting (the rest
-works — graceful degradation).
+`/api/user-data` fails and history/saved/last-album stop persisting, and the
+upstream cache is memory-only (the rest works — graceful degradation).
 
 **A) `app.js` (shared hosting / Passenger)** — the current setup. `app.js` is a
 custom Node server that loads `.env.local` via `@next/env`, then boots the
@@ -171,20 +171,30 @@ Discogs query (`drawQuery`):
 
 With no filters at all it draws a random genre. `searchMasters` queries
 `/database/search` for `type=master&format=Album` (no singles/EPs/demos), most
-collected first (`sort=have`). `searchAlbum` picks a page among the first 10
-(50 per page; weight `1/page`, so deep, rarely-owned pages are rare), then an
-album weighted by `sqrt(have) + 1`; an empty combination is redrawn up to 3
-times before `no_matches`. Discogs titles are `Artist - Album`; the artist is
+collected first (`sort=have`). `searchAlbum` gets the page count from
+`getPageCount` (cached on its own, so a warm roll fetches only the page it draws,
+not page 1 first; 0 pages = an empty combination, also cached), picks a page
+among the first 10 (50 per page; weight `1/page`, so deep, rarely-owned pages
+are rare), then an album weighted by `sqrt(have) + 1`; an empty combination is
+redrawn up to 3 times before `no_matches`. Discogs titles are `Artist - Album`; the artist is
 cleaned of Discogs' disambiguation suffixes (`*`, ` (2)`). The reason is
 `{ kind: 'search', filters, have }`.
 
 `discogs.ts` sends a `User-Agent` built from `APP_URL` (required by Discogs) and
 the optional `DISCOGS_TOKEN` (`Authorization: Discogs token=…`). Requests go
 through their own `createRateLimiter` queue — 2.4 s spacing anonymous (25
-req/min), 1 s with a token (60 req/min) — retry a 429 once, and result pages are
-cached 1h. **Anonymous requests get no cover images** (Discogs serves images only
-to token requests), so `coverFor` falls back to Last.fm `album.getInfo` art (API
-key only, no account) and then the Cover Art Archive via `resolveCover`.
+req/min), 1 s with a token (60 req/min) — retry a 429 once. Result pages
+(slimmed to the fields the search uses) and page counts are kept for 7 days in
+the two-level cache (`persistentCached`, see Database), keyed separately for
+anonymous and token requests. **Anonymous requests get no cover images**
+(Discogs serves images only to token requests), so `coverFor` falls back to
+Last.fm `album.getInfo` art (API key only, no account) and then the Cover Art
+Archive via `resolveCover`.
+
+The client prefetches in search mode: after showing an album, `page.tsx` fetches
+the next one for the same URL in the background (and warms both cover sizes), and
+the next roll uses it if the URL still matches and it isn't the album on screen.
+Not done in For me mode — a prefetch would bypass the server's recent-rolls check.
 
 ### History & saved albums
 
@@ -226,6 +236,16 @@ has `email`, `passwordHash`, `createdAt` and — once linked — `lastfmUsername
 `project()` in `userData.ts` never returns credentials. Only Node-runtime route
 handlers touch it; the Edge middleware does not.
 
+A second collection, `cache`, is the persistent L2 behind the in-process cache:
+`persistentCached(key, loader, ttlMs)` (`src/lib/persistentCache.ts`) wraps
+`cached` and, on an L1 miss, reads `{ _id: key, value, expiresAt }` from Mongo
+before calling the loader, then upserts the result fire-and-forget (a TTL index
+on `expiresAt`, created lazily in `getCacheCollection`, removes expired
+entries). Reads are capped at 500 ms and any failure skips Mongo for 30 s, so
+without a (reachable) database it degrades to L1 only. Used for shared upstream
+data that should survive a restart or an idle Passenger process: Discogs pages
+and page counts, Last.fm `album.getInfo`, Cover Art Archive lookups.
+
 ### Last.fm client (`src/lib/lastfm/`)
 
 `client.ts` is the only place that talks HTTP to `ws.audioscrobbler.com`:
@@ -266,9 +286,12 @@ Last.fm frequently returns a placeholder "star" image (detected by known md5
 hashes). `resolveCover` returns real Last.fm CDN images (the client upgrades them to
 600×600) and falls back to the Cover Art Archive when Last.fm only has a
 placeholder: a `HEAD /release/<mbid>/front-500` (Last.fm mbids are release ids)
-without following the redirect, cached 24h including a definite "no cover".
-Returns `null` when nothing is found (UI shows its own placeholder). Covers are
-plain `<img>` tags (no `next/image`).
+without following the redirect, cached 7 days (memory + Mongo) including a
+definite "no cover". Returns `null` when nothing is found (UI shows its own
+placeholder). Covers are plain `<img>` tags (no `next/image`). The client-side
+`upgradeLastfmImage` lives in `src/lib/coverUrl.ts`, apart from `coverart.ts`,
+which is server-only (it pulls in the MongoDB driver) — client components must
+not import it.
 
 ### Auth & access control
 
@@ -320,4 +343,6 @@ an email account's Last.fm link is refreshed from the DB);
   multiple server instances. Fine for single-instance deploys. It stores the
   promise (concurrent callers share one load; failures aren't cached), sweeps
   expired entries and caps the store at 5000 entries. Keep cached values slim.
-  TTLs: shared artist/album data 24h, user library 24h, profile 1h.
+  TTLs: album info 7 days, artist data 24h, user library 24h, profile 1h.
+- Shared, user-independent upstream data → `persistentCached` (memory + Mongo);
+  per-user data → `cached` only.

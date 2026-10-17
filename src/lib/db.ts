@@ -86,3 +86,35 @@ export async function getUsersCollection(): Promise<Collection<UserDoc>> {
     await ensureIndexes(users);
     return users;
 }
+
+/**
+ * A persistent cache entry (see `persistentCache.ts`): shared upstream data that
+ * should survive a process restart. Mongo's TTL monitor deletes it once
+ * `expiresAt` passes (within ~a minute, so readers still check it).
+ */
+export interface CacheDoc {
+    _id: string;
+    value: unknown;
+    expiresAt: Date;
+}
+
+let cacheIndexPromise: Promise<unknown> | null = null;
+
+function ensureCacheIndex(cache: Collection<CacheDoc>): Promise<unknown> {
+    if (!cacheIndexPromise) {
+        cacheIndexPromise = cache
+            .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
+            .catch((err) => {
+                cacheIndexPromise = null;
+                throw err;
+            });
+    }
+    return cacheIndexPromise;
+}
+
+export async function getCacheCollection(): Promise<Collection<CacheDoc>> {
+    const db = await getDb();
+    const cache = db.collection<CacheDoc>('cache');
+    await ensureCacheIndex(cache);
+    return cache;
+}
