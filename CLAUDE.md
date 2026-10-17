@@ -9,23 +9,31 @@ docker compose up             # start the full dev stack: app (Node 24) + MongoD
 docker compose up --build     # rebuild the app image after dependency changes
 docker compose down           # stop the stack (add -v to also wipe the DB data)
 
+./dev.sh                      # wrapper: up --build in the foreground (Ctrl-C stops)
+./dev.sh up|down|restart|rebuild|logs|ps|sh   # sh = shell in the `web` container
+
 # Production image (connects to an external MongoDB via MONGODB_URI):
 docker build --target prod -t next-album .
 
 # Running on the host instead of in Docker (needs a reachable MongoDB):
 npm run dev                   # dev server at http://localhost:3000
 npm run build                 # production build
-npm run start                 # serve the production build
-npm run lint                  # next lint (ESLint)
+npm run start                 # serve the production build (next start)
+npm run serve                 # serve the production build via app.js
+npm run lint                  # next lint (ESLint is not installed — it will prompt)
 ```
 
-There is no test runner configured. `docker-compose.yml` runs the whole dev
-environment in Docker (the `Dockerfile` `dev` target for the app plus a `mongo:6`
-service). The app talks to the `mongo` service and compose overrides
+There is no test runner and no ESLint config; `npx tsc --noEmit` is the quickest
+check. `docker-compose.yml` runs the whole dev environment in Docker (the
+`Dockerfile` `dev` target as the `web` service, with the source bind-mounted and
+`WATCHPACK_POLLING` for hot reload, plus a `mongo:6` service with a named volume).
+The app talks to the `mongo` service and compose overrides
 `MONGODB_URI=mongodb://mongo:27017` for the containerized run. Production does not
 use compose — the `Dockerfile` `prod` target builds a standalone image
 (`next.config.ts` sets `output: 'standalone'`) that reads `MONGODB_URI` from its
-own config.
+own config. `next.config.ts` also limits build parallelism (`cpus: 1`,
+`workerThreads: false`) so `next build` doesn't hit the shared host's process
+limit (`spawn EAGAIN`) — keep it.
 
 Requires `.env.local` (copy from `.env.example`): `LASTFM_API_KEY`,
 `LASTFM_SHARED_SECRET`, `APP_URL`, `SESSION_SECRET` (≥32 chars), plus
@@ -247,6 +255,11 @@ returned from the API as a structured `AlbumReason` union and translated on the
 client, so switching language re-renders an already-shown album's reason without
 a refetch.
 
+The light/dark theme works the same way: `ThemeProvider` seeds from a `theme`
+cookie read in `layout.tsx` (default `dark`, set as `data-theme` on `<html>`),
+and `setTheme` writes the cookie (1y); a legacy localStorage `theme` is migrated
+to the cookie once.
+
 ### Cover art (`src/lib/coverart.ts`)
 
 Last.fm frequently returns a placeholder "star" image (detected by known md5
@@ -266,13 +279,18 @@ Two independent, both-optional layers plus the (optional) account session:
    without a valid gate cookie redirect to `/gate` (or 401 for `/api/*`). The
    gate cookie stores an HMAC token (`gateToken`), not the password; changing
    the password invalidates all cookies. Uses Web Crypto so it runs in both Edge
-   and Node runtimes.
+   and Node runtimes. `ACCESS_PASSWORD` must be ≥8 chars. `POST /api/gate`
+   checks the password (throttled per IP) and sets the cookie; `DELETE
+   /api/gate` re-locks (clears it).
 2. **Account session** (`src/lib/session.ts`, iron-session) — an encrypted,
    httpOnly cookie (`next_album_session`, 30-day) holding `{ userId,
    lastfmUsername?, email? }`; `getCurrentUser()` reads it (a legacy cookie with
    only `username` maps to a Last.fm-only account). `/login` offers two ways in:
-   - **Last.fm** — `/api/auth/login` redirects to Last.fm; `/api/auth/callback`
-     exchanges the token for the username (the session key isn't kept) and
+   - **Last.fm** — `/api/auth/login` redirects to Last.fm with a nonce in the
+     callback URL, mirrored in a 10-min httpOnly cookie (`next_album_oauth_nonce`,
+     `src/lib/oauth.ts`; login-CSRF defense, compared with `safeEqual`);
+     `/api/auth/callback` verifies it, exchanges the token for the username
+     (`auth.getSession`; the session key isn't kept) and
      `resolveLastfmLogin` maps it to the email account it's linked to, if any.
      `/api/auth/login?link=1` from a logged-in email account instead **links**
      Last.fm to it (`linkLastfm`: `?error=lastfm_taken` if another email account
