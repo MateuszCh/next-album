@@ -29,8 +29,9 @@ own config.
 
 Requires `.env.local` (copy from `.env.example`): `LASTFM_API_KEY`,
 `LASTFM_SHARED_SECRET`, `APP_URL`, `SESSION_SECRET` (≥32 chars), plus
-`MONGODB_URI` and `MONGODB_DB` for per-user data storage. Optional access
-control: `ACCESS_PASSWORD`, `ALLOWED_LASTFM_USERS`. The Last.fm app's **Callback
+`MONGODB_URI` and `MONGODB_DB` for per-user data storage. Optional:
+`DISCOGS_TOKEN` (album search: covers + higher rate limit), and access control
+`ACCESS_PASSWORD`, `ALLOWED_LASTFM_USERS`. The Last.fm app's **Callback
 URL** must be set to `<APP_URL>/api/auth/callback`.
 
 ## Deployment (production)
@@ -44,7 +45,7 @@ a real database (e.g. MongoDB Atlas, a managed instance, or a Mongo on the host)
 **Required production env** (in `.env.local` on the host, or real env vars):
 `LASTFM_API_KEY`, `LASTFM_SHARED_SECRET`, `APP_URL` (the public URL — the Last.fm
 Callback URL must be `<APP_URL>/api/auth/callback`), `SESSION_SECRET` (≥32 chars),
-`MONGODB_URI`, `MONGODB_DB`, and optionally `ACCESS_PASSWORD` /
+`MONGODB_URI`, `MONGODB_DB`, and optionally `DISCOGS_TOKEN`, `ACCESS_PASSWORD` /
 `ALLOWED_LASTFM_USERS`. Without `MONGODB_URI`/`MONGODB_DB` the app still boots but
 `/api/user-data` fails and history/saved/last-album stop persisting (the rest
 works — graceful degradation).
@@ -79,72 +80,113 @@ docker run -p 3000:3000 \
 ## Architecture
 
 Next.js 15 (App Router) + React 19 + TypeScript. The app picks one album to
-listen to from a user's Last.fm profile. **All Last.fm communication, request
-signing, and the session key are server-only** — the `shared_secret` and session
-key never reach the browser. Import alias: `@/*` → `src/*`.
+listen to, in **two modes** (tabs in `src/app/page.tsx`, remembered in
+localStorage `appMode`):
+
+- **For me** (`lastfm`) — from the logged-in user's Last.fm profile, steered only
+  by the favorites ↔ discovery slider. No filters.
+- **Find an album** (`search`) — a random well-loved album from **Discogs** for
+  genre / decade / country filters. No slider and **no Last.fm login needed**.
+
+**All Last.fm communication and request signing are server-only** — the
+`shared_secret` never reaches the browser, and the Last.fm session key isn't
+kept at all (every call the app makes is an unsigned public read).
+Import alias: `@/*` → `src/*`.
 
 ### Request flow
 
-`src/app/page.tsx` (client) →
-`GET /api/recommend?discovery=<0–1>&genre=<…>&mood=<…>&decade=<…>&now=<1|true>`
-→ the single `recommend()` entry point in `src/lib/recommend/engine.ts`. The
-three tag dimensions are **multi-select lists**: each accepts repeated params
-(`?genre=a&genre=b`) or a comma-separated value (`?genre=a,b`), parsed by
-`parseTags` in the route. `now=1` scopes to this week's listening. The route
-reads the username from the encrypted session cookie; the client never sends
-identity, only the slider value + selected tags + `now`. Every tag is validated
-server-side (`isKnownGenre`/`isKnownMood`/`isKnownDecade`) and deduped, so the
-engine only ever sees curated tags. The legacy single-mode client
-(`dimension=<genre|mood|decade|current>` + `tag=<…>`) is still accepted and
-folded into the list/`now` params for back-compat. An over-narrow filter set
-returns `400 {error:'no_matches'}` (localized by the client); other failures
-return `502 {error:'pick_failed'}`.
+- **For me:** `GET /api/recommend?discovery=<0–1>` → `recommend()` in
+  `src/lib/recommend/engine.ts`. The route reads the username from the encrypted
+  session cookie (401 `not_logged_in` without one); the client sends only the
+  slider value. Failures return `502 {error:'pick_failed'}`.
+- **Find an album:** `GET /api/search?genre=<…>&decade=<…>&country=<…>` →
+  `searchAlbum()` in `src/lib/search.ts`. No session needed (the password gate
+  still applies). Each dimension is a **multi-select list**: repeated params
+  (`?genre=a&genre=b`) or comma-separated (`?genre=a,b`), parsed by `parseTags`
+  and validated against the curated lists (`isKnownGenre`/`isKnownDecade`/
+  `isKnownCountry`), so the search only sees curated tags. An empty match returns
+  `400 {error:'no_matches'}` (localized by the client); other failures
+  `502 {error:'pick_failed'}`.
 
-### Recommendation engine (`src/lib/recommend/`)
+### Recommendation engine — For me (`src/lib/recommend/engine.ts`)
 
-The core domain logic, with **one public entry point**:
-`recommend(username, { discovery, genres, moods, decades, now })`. Every roll is
-a coin flip: `Math.random() < discovery` picks **discovery** vs **favorites**
-(rediscovery) mode for that roll; if the chosen mode yields nothing it falls back
-to the other, then to `no_matches` when filters leave nothing. `weightedPick`
-(`weighted.ts`) is the shared weighted-random primitive. The user's profile (top
-albums/artists + recent tracks) is fetched once and cached 1h per username via
-`loadProfile`; weekly artists cache 1h via `loadWeeklyArtists`.
-
-The two base modes (no filters):
+One entry point, `recommend(username, { discovery, recentRolls })`. Every roll is a coin flip:
+`Math.random() < discovery` picks **discovery** vs **favorites** (rediscovery)
+for that roll; if the chosen mode yields nothing it falls back to the other.
+`weightedPick` (`weighted.ts`) is the shared weighted-random primitive. User data
+is fetched lazily per mode and cached per username: `loadLibrary` (24h — the
+whole artist library with playcounts, paginated 1000/page; its top 200 are the
+seeds), `loadProfile` (1h — top 500 albums of all time with duplicate editions
+merged, plus the albums played in the last 3 months) and `loadRecentAlbumKeys`
+(5 min — last 25 scrobbles). The route passes the stored roll history
+(`recentRolls`, read with a 1.5 s cap) so recent picks are never repeated.
 
 - **Favorites/rediscovery** (`recommendFavorites`) — weighted-random album from
-  the user's top albums (weighted by playcount), skipping albums in their last 25
-  recent tracks.
-- **Discovery** (`discoverFromSeeds`) — weighted-random seed from top artists →
-  Last.fm similar artists → drop artists the user already listens to →
-  weighted-random top album of the picked artist. Retries up to 5 seeds if
-  similar artists are empty/known.
+  the user's top albums (weighted by summed playcount) that is out of rotation:
+  not played in the last 3 months or last 25 scrobbles, not recently rolled.
+  When every favorite is in rotation it returns null (→ discovery).
+- **Discovery** (`discoverFromSeeds`) — seed from top artists weighted by
+  √playcount → Last.fm similar artists → drop known artists (`KNOWN_MIN_PLAYS`
+  = 20+ plays; a collaboration counts by its most played part) →
+  weighted-random top album of the picked artist, skipping recent rolls. For a
+  "sampled" artist (1–19 plays) `pickUnplayedAlbum` checks the user's own
+  `userplaycount` (`getUserAlbumPlaycount`, `album.getInfo` with `username`)
+  and skips albums already played. Never falls back to known artists; retries
+  up to 5 seeds.
 
-**Filters** narrow that same coin flip. `genres`/`moods`/`decades` are
-multi-select curated Last.fm tags — each a fixed `{tag, label}` list (not
-Last.fm's noisy top tags): `genres.ts`, `moods.ts`, `decades.ts`. Tag semantics
-are **OR within a dimension, AND across dimensions**: `unionTagArtists` unions
-each dimension's `tag.getTopArtists`, then `intersect` ANDs the dimensions into a
-single `tagArtists` set. `now` intersects further with this week's chart
-(`user.getWeeklyArtistChart`); if there's no weekly data it silently drops the
-`now` filter and degrades to the normal mix. With filters active, favorites is
-restricted to `tagArtists ∩ weeklySet`; discovery is seeded from the weekly
-artists when `now`, or drawn from the tags' top albums
-(`discoverFromTagAlbums`, weighted by list position since tag albums carry no
-playcount) when tags-only.
+Album and artist identity goes through `src/lib/identity.ts` (`albumKey`,
+`artistKey`, `artistKeys`): case, diacritics (incl. `ł`), punctuation, a leading
+"The" and edition suffixes ("(2011 Remastered Version)", "Deluxe Edition") are
+folded, so Last.fm's duplicate entries of one album compare equal. The same key
+dedups history/saved on the server and the client.
 
-**History & saved albums** are stored per user in MongoDB (keyed by the session
-username), not in the browser. Every roll is pushed to a capped (50) history list
-and set as the last album; the star on `AlbumCard` toggles an album into a saved
-list. `HistoryPanel` shows both and re-displays a past album without a refetch
-(recommendations are JSON-serializable). Server logic lives in
-`src/lib/userData.ts` behind the `/api/user-data` route (`GET` returns
-`{ lastAlbum, history, saved }`; `POST` dispatches on an `action` discriminator:
-`push` / `set-last` / `toggle-saved` / `remove-saved`). The client wrappers in
-`src/lib/history.ts` are thin async fetch calls; `src/app/page.tsx` owns the
-saved state and passes it to `AlbumCard`. UI-only preferences (`discovery`,
-`now`, `filtersOpen`, and the `genre`/`mood`/`decade` tag lists) still live in
+### Album search — Find an album (`src/lib/search.ts`, `src/lib/discogs.ts`)
+
+Filters are fixed curated lists: `src/lib/recommend/genres.ts`, `decades.ts`,
+`countries.ts` (`tag` = stable id sent by the client; `label`; plus the Discogs
+mapping). Semantics are **OR within a dimension, AND across dimensions**: each
+roll draws one selected value per dimension and combines them into a single
+Discogs query (`drawQuery`):
+
+- **genre** → a random variant from `Genre.discogs` (Discogs takes one genre and
+  one style per query, e.g. metal → Heavy Metal / Thrash / Death Metal / …);
+- **decade** → `year=<from>-<from+9>`;
+- **country** → `Country.discogs` (`UK`, `US`, `Poland`, …). Discogs matches a
+  country if *any* release of the album was issued there, so e.g. Japan also
+  returns Japanese pressings of Western albums.
+
+With no filters at all it draws a random genre. `searchMasters` queries
+`/database/search` for `type=master&format=Album` (no singles/EPs/demos), most
+collected first (`sort=have`). `searchAlbum` picks a page among the first 10
+(50 per page; weight `1/page`, so deep, rarely-owned pages are rare), then an
+album weighted by `sqrt(have) + 1`; an empty combination is redrawn up to 3
+times before `no_matches`. Discogs titles are `Artist - Album`; the artist is
+cleaned of Discogs' disambiguation suffixes (`*`, ` (2)`). The reason is
+`{ kind: 'search', filters, have }`.
+
+`discogs.ts` sends a `User-Agent` built from `APP_URL` (required by Discogs) and
+the optional `DISCOGS_TOKEN` (`Authorization: Discogs token=…`). Requests go
+through their own `createRateLimiter` queue — 2.4 s spacing anonymous (25
+req/min), 1 s with a token (60 req/min) — retry a 429 once, and result pages are
+cached 1h. **Anonymous requests get no cover images** (Discogs serves images only
+to token requests), so `coverFor` falls back to Last.fm `album.getInfo` art (API
+key only, no account) and then the Cover Art Archive via `resolveCover`.
+
+### History & saved albums
+
+Stored per user in MongoDB (keyed by the session username), not in the browser,
+so they exist **only when logged in** — logged out, the search mode hides the
+`HistoryPanel` and the star on `AlbumCard`. Every roll (both modes) is pushed to
+a capped (50) history list and set as the last album; the star toggles an album
+into a saved list. `HistoryPanel` re-displays a past album without a refetch
+(recommendations are JSON-serializable; `AlbumRecommendation.mode` is
+`rediscovery` / `discovery` / `search`, `source` is `lastfm` / `discogs`).
+Server logic lives in `src/lib/userData.ts` behind the `/api/user-data` route
+(`GET` returns `{ lastAlbum, history, saved }`; `POST` dispatches on an `action`
+discriminator: `push` / `set-last` / `toggle-saved` / `remove-saved`). The client
+wrappers in `src/lib/history.ts` are thin async fetch calls; `src/app/page.tsx`
+owns the saved state and passes it to `AlbumCard`. UI-only preferences
+(`appMode`, `discovery`, and the `genre`/`decade`/`country` tag lists) live in
 localStorage.
 
 ### Database (`src/lib/db.ts`)
@@ -163,13 +205,17 @@ Edge middleware does not.
 - `lastfmGet` — unsigned public reads (api_key only).
 - `lastfmSignedGet` — signed POST (e.g. `auth.getSession`). `signParams` builds
   the `api_sig` md5 per spec (params sorted, `format`/`callback` excluded).
-- Every request goes through `rateLimited` (`limiter.ts`), a global FIFO queue
-  enforcing ~250ms spacing (single server IP shares Last.fm's ~5 req/s limit),
-  plus retry-with-backoff on rate-limit (error 29 / HTTP 429).
+- Every request goes through `rateLimited` (`limiter.ts`, built with the shared
+  `createRateLimiter` factory), a global FIFO queue enforcing ~250ms spacing
+  (single server IP shares Last.fm's ~5 req/s limit), plus retry-with-backoff on
+  rate-limit and transient errors (codes 29, 8, 11, 16, HTTP 5xx).
+- Every upstream fetch (Last.fm, Discogs, CAA) has an `AbortSignal.timeout` and
+  the shared `getUserAgent()` from `src/lib/userAgent.ts` (needs `APP_URL`); a
+  hung request would otherwise block a limiter queue for everyone.
 
-`user.ts` / `artist.ts` / `album.ts` / `tag.ts` are typed wrappers over specific
-Last.fm methods; `types.ts` holds the response shapes. `pickImage` selects the
-largest image from Last.fm's image array.
+`user.ts` / `artist.ts` / `album.ts` are typed wrappers over specific Last.fm
+methods; `types.ts` holds the response shapes. `pickImage` selects the largest
+image from Last.fm's image array.
 
 ### Internationalization (`src/lib/i18n.ts`)
 
@@ -184,10 +230,12 @@ a refetch.
 ### Cover art (`src/lib/coverart.ts`)
 
 Last.fm frequently returns a placeholder "star" image (detected by known md5
-hashes). `resolveCover` upgrades real Last.fm CDN images to 600×600 and falls
-back to the Cover Art Archive by mbid when Last.fm only has a placeholder.
-Returns `null` when nothing is found (UI shows its own placeholder). Allowed
-remote image hosts are whitelisted in `next.config.ts`.
+hashes). `resolveCover` returns real Last.fm CDN images (the client upgrades them to
+600×600) and falls back to the Cover Art Archive when Last.fm only has a
+placeholder: a `HEAD /release/<mbid>/front-500` (Last.fm mbids are release ids)
+without following the redirect, cached 24h including a definite "no cover".
+Returns `null` when nothing is found (UI shows its own placeholder). Covers are
+plain `<img>` tags (no `next/image`).
 
 ### Auth & access control
 
@@ -201,8 +249,8 @@ Two independent, both-optional layers plus the Last.fm OAuth session:
    and Node runtimes.
 2. **Last.fm OAuth session** (`src/lib/session.ts`, iron-session) — login at
    `/api/auth/login` redirects to Last.fm; `/api/auth/callback` exchanges the
-   token for `{username, sessionKey}` and saves them in an encrypted, httpOnly
-   cookie (`next_album_session`, 30-day).
+   token for `{username, sessionKey}` and saves only the username in an
+   encrypted, httpOnly cookie (`next_album_session`, 30-day).
 3. **Username allowlist** (`src/lib/access.ts`) — checked in the callback. If
    `ALLOWED_LASTFM_USERS` is set and the account isn't on it, the session is not
    saved and the user is redirected with `?error=not_allowed`.
@@ -215,4 +263,7 @@ Two independent, both-optional layers plus the Last.fm OAuth session:
   (e.g. `getApiKey`, `getSessionPassword`) that throw a clear error when missing
   — not at module load. Follow this pattern for new env-dependent code.
 - The in-process cache (`cache.ts`) is per-instance; it is not shared across
-  multiple server instances. Fine for single-instance deploys.
+  multiple server instances. Fine for single-instance deploys. It stores the
+  promise (concurrent callers share one load; failures aren't cached), sweeps
+  expired entries and caps the store at 5000 entries. Keep cached values slim.
+  TTLs: shared artist/album data 24h, user library 24h, profile 1h.

@@ -23,7 +23,9 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-        const { username, sessionKey } = await getSession(token);
+        // Only the username is kept: every Last.fm call the app makes is a public,
+        // unsigned read, so the session key would be an unused credential.
+        const { username } = await getSession(token);
 
         // Allowlist: only specific Last.fm accounts are allowed in.
         if (!isUserAllowed(username)) {
@@ -34,7 +36,6 @@ export async function GET(req: NextRequest) {
 
         const session = await getSessionFromCookies();
         session.username = username;
-        session.sessionKey = sessionKey;
         await session.save();
         const res = NextResponse.redirect(home + '/');
         res.cookies.delete(OAUTH_NONCE_COOKIE);

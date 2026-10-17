@@ -380,66 +380,8 @@ button {
     box-shadow: var(--shadow);
 }
 
-/* Collapsible filters: a toggle header + the filter groups below it. */
-.filters-header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 1.25rem 0 1rem;
-}
-
-.filters-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex: 1;
-    padding: 0.6rem 0.9rem;
-    background: transparent;
-    border: 2px solid var(--accent-soft);
-    border-radius: 999px;
-    color: var(--accent);
-    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-        color 0.15s ease,
-        border-color 0.15s ease;
-}
-
-.filters-toggle:hover {
-    color: var(--accent-hover);
-    border-color: var(--accent);
-}
-
-.filters-toggle > span {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filters-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.35rem;
-    height: 1.35rem;
-    padding: 0 0.4rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-
-.filters-chevron {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.15s ease;
-}
-
 .filters-reset {
-    flex-shrink: 0;
+    align-self: flex-start;
     padding: 0.35rem 0.6rem;
     background: none;
     border: none;
@@ -462,11 +404,7 @@ button {
     opacity: 0.6;
 }
 
-.filters-chevron.open {
-    transform: rotate(180deg);
-}
-
-/* Filter groups (genre / mood / decade + the "now" toggle). */
+/* Album search filter groups (genre / decade / country) + the clear button. */
 .filters {
     display: flex;
     flex-direction: column;
@@ -487,11 +425,6 @@ button {
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--text-dim);
-}
-
-.filter-now {
-    flex-direction: row;
-    align-items: center;
 }
 
 .genre-grid {
@@ -789,13 +722,6 @@ input[type='range']:disabled {
     font-weight: 600;
 }
 
-.badge-genre {
-    left: auto;
-    right: 0.8rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-}
-
 .save-btn {
     position: absolute;
     bottom: 0.8rem;
@@ -909,6 +835,10 @@ input[type='range']:disabled {
     z-index: 1;
     margin-top: auto;
     padding-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
     text-align: center;
 }
 
@@ -928,7 +858,8 @@ input[type='range']:disabled {
     margin-top: 2rem;
 }
 
-.history-tabs {
+.history-tabs,
+.mode-tabs {
     max-width: 280px;
     display: flex;
     gap: 0.25rem;
@@ -941,11 +872,13 @@ input[type='range']:disabled {
     scrollbar-width: none;
 }
 
-.history-tabs::-webkit-scrollbar {
+.history-tabs::-webkit-scrollbar,
+.mode-tabs::-webkit-scrollbar {
     display: none;
 }
 
-.history-tabs button {
+.history-tabs button,
+.mode-tabs button {
     flex: 1;
     white-space: nowrap;
     border: none;
@@ -962,14 +895,23 @@ input[type='range']:disabled {
         color 0.15s ease;
 }
 
-.history-tabs button.active {
+.history-tabs button.active,
+.mode-tabs button.active {
     background: var(--accent);
     color: var(--accent-contrast);
 }
 
-.history-tabs button:disabled {
+.history-tabs button:disabled,
+.mode-tabs button:disabled {
     cursor: default;
     opacity: 0.6;
+}
+
+/* Mode tabs (Last.fm / album search): the pill styling above, centered and
+   wider than the history tabs. */
+.mode-tabs {
+    max-width: 360px;
+    margin: 0 auto 1.75rem;
 }
 
 .history-empty {

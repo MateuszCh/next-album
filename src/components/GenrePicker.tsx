@@ -16,7 +16,7 @@ interface Props {
 }
 
 /**
- * Generic multi-select tag picker used for the genre / mood / decade filters.
+ * Generic multi-select tag picker used for the genre / decade / country filters.
  * Desktop shows a chip grid; mobile (via media query) swaps to a scrollable
  * dropdown that stays open so several tags can be toggled at once.
  */

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { upgradeLastfmImage } from '@/lib/coverart';
+import { albumKey } from '@/lib/history';
 import { useI18n } from '@/components/LanguageProvider';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
@@ -15,6 +16,8 @@ interface Props {
 
 type Tab = 'history' | 'saved';
 
+// React key: the raw name pair. History stored before keys were normalized can
+// hold two editions of one album, which would collide on `albumKey`.
 function itemKey(a: AlbumRecommendation): string {
     return `${a.artist}::${a.name}`.toLowerCase();
 }
@@ -37,7 +40,7 @@ export function HistoryPanel({ history, saved, onPick, onToggleSave, onRemoveSav
     const list = activeTab === 'history' ? history : saved;
 
     // Lets each history row show whether it's already saved.
-    const savedKeys = new Set(saved.map(itemKey));
+    const savedKeys = new Set(saved.map(albumKey));
 
     const label = (tb: Tab) => (tb === 'history' ? t('history.title') : t('history.saved'));
 
@@ -86,7 +89,7 @@ export function HistoryPanel({ history, saved, onPick, onToggleSave, onRemoveSav
                         </button>
                         {activeTab === 'history' &&
                             (() => {
-                                const isSaved = savedKeys.has(itemKey(album));
+                                const isSaved = savedKeys.has(albumKey(album));
                                 return (
                                     <button
                                         type="button"

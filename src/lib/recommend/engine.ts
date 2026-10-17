@@ -1,81 +1,129 @@
 import { cached } from '@/lib/cache';
-import {
-    getTopAlbums,
-    getTopArtists,
-    getRecentTracks,
-    getWeeklyArtistChart,
-    pickImage,
-} from '@/lib/lastfm/user';
+import { getTopAlbums, getTopArtists, getRecentTracks, pickImage } from '@/lib/lastfm/user';
 import { getSimilarArtists, getArtistTopAlbums } from '@/lib/lastfm/artist';
-import { getAlbumInfo } from '@/lib/lastfm/album';
-import { getTagTopAlbums, getTagTopArtists } from '@/lib/lastfm/tag';
+import { getAlbumInfo, getUserAlbumPlaycount } from '@/lib/lastfm/album';
 import { resolveCover } from '@/lib/coverart';
+import { albumKey, artistKey, artistKeys, recommendationKey } from '@/lib/identity';
 import { weightedPick } from './weighted';
-import type {
-    AlbumRecommendation,
-    LastfmTagAlbum,
-    LastfmTopAlbum,
-    LastfmTopArtist,
-    LastfmWeeklyArtist,
-} from '@/lib/lastfm/types';
+import type { AlbumRecommendation, LastfmArtistAlbum, LastfmTopAlbum } from '@/lib/lastfm/types';
 
-const RECENT_FILTER_COUNT = 25;
+// An artist the user played at least this often counts as known, so discovery
+// never offers it as new. Below it an artist is at most "sampled" (a few
+// tracks) and still fair game — but not an album the user already played.
+const KNOWN_MIN_PLAYS = 20;
+// Hard cap on the library fetch (1000 per page) — far beyond a real library.
+const LIBRARY_LIMIT = 20_000;
+// How many albums of a sampled artist to check for "already played" per seed.
+const MAX_PLAYED_CHECKS = 3;
+// Discovery seeds: the user's most played artists.
+const SEED_COUNT = 200;
+// Favorites pool: the user's most played albums of all time.
+const FAVORITES_LIMIT = 500;
+// Albums played in this period are "in rotation" — not a rediscovery.
+const ROTATION_LIMIT = 1000;
+// Catches what the rotation chart doesn't show yet (it lags by up to a day).
+const RECENT_TRACKS_COUNT = 25;
 
-function albumKey(artist: string, album: string): string {
-    return `${artist}::${album}`.toLowerCase();
+const LIBRARY_TTL_MS = 24 * 60 * 60 * 1000;
+const RECENT_TTL_MS = 5 * 60 * 1000;
+
+interface Seed {
+    name: string;
+    plays: number;
+}
+
+/** The user's whole artist library: plays per `artistKey`, plus the seeds. */
+interface Library {
+    seeds: Seed[];
+    plays: Map<string, number>;
+}
+
+/** A favorite album, with Last.fm's duplicate entries of it merged. */
+interface Favorite {
+    album: LastfmTopAlbum;
+    key: string;
+    plays: number;
 }
 
 interface Profile {
-    topAlbums: LastfmTopAlbum[];
-    topArtists: LastfmTopArtist[];
-    recentAlbumKeys: Set<string>;
-    topArtistNames: Set<string>;
+    favorites: Favorite[];
+    rotationKeys: Set<string>;
 }
 
 /**
- * Fetches and caches the user's profile (1h). Subsequent rolls reuse the same
- * data, so they are instant.
+ * The user's artist library (cached 24h): every artist they ever played, with
+ * playcounts — ~5 requests for a library of a few thousand artists. The library
+ * changes slowly, so a day-old snapshot is fine for exclusion.
  */
-export async function loadProfile(username: string): Promise<Profile> {
-    return cached(`profile:${username}`, async () => {
-        const [topAlbums, topArtists, recent] = await Promise.all([
-            getTopAlbums(username, { period: 'overall', limit: 500 }),
-            getTopArtists(username, { period: 'overall', limit: 200 }),
-            getRecentTracks(username, RECENT_FILTER_COUNT),
+function loadLibrary(username: string): Promise<Library> {
+    return cached(
+        `library:${username.toLowerCase()}`,
+        async () => {
+            const artists = await getTopArtists(username, {
+                period: 'overall',
+                limit: LIBRARY_LIMIT,
+            });
+            // Spelling variants of one artist share a key; their plays add up.
+            const plays = new Map<string, number>();
+            for (const a of artists) {
+                const key = artistKey(a.name);
+                plays.set(key, (plays.get(key) ?? 0) + (Number(a.playcount) || 0));
+            }
+            const seeds = artists
+                .slice(0, SEED_COUNT)
+                .map((a) => ({ name: a.name, plays: Number(a.playcount) || 1 }));
+            return { seeds, plays };
+        },
+        LIBRARY_TTL_MS,
+    );
+}
+
+/**
+ * Top albums of all time (cached 1h), with duplicate entries of the same album
+ * (remasters, deluxe editions, spelling variants) merged into one whose
+ * playcount is their sum, plus the albums played in the last 3 months.
+ */
+function loadProfile(username: string): Promise<Profile> {
+    return cached(`profile:${username.toLowerCase()}`, async () => {
+        const [topAlbums, rotation] = await Promise.all([
+            getTopAlbums(username, { period: 'overall', limit: FAVORITES_LIMIT }),
+            getTopAlbums(username, { period: '3month', limit: ROTATION_LIMIT }),
         ]);
 
-        const recentAlbumKeys = new Set(
-            recent
-                .filter((t) => t.album?.['#text'])
-                .map((t) => albumKey(t.artist['#text'], t.album['#text'])),
-        );
-        const topArtistNames = new Set(topArtists.map((a) => a.name.toLowerCase()));
+        // Sorted by playcount, so the first entry of a key is its most played one.
+        const byKey = new Map<string, Favorite>();
+        for (const album of topAlbums) {
+            const key = albumKey(album.artist.name, album.name);
+            const plays = Number(album.playcount) || 0;
+            const existing = byKey.get(key);
+            if (existing) existing.plays += plays;
+            else byKey.set(key, { album, key, plays });
+        }
 
-        return { topAlbums, topArtists, recentAlbumKeys, topArtistNames };
+        const rotationKeys = new Set(rotation.map((a) => albumKey(a.artist.name, a.name)));
+        return { favorites: [...byKey.values()], rotationKeys };
     });
 }
 
-/** This week's artist chart, cached 1h per user (like the profile). */
-function loadWeeklyArtists(username: string): Promise<LastfmWeeklyArtist[]> {
-    return cached(`weekly:${username}`, () => getWeeklyArtistChart(username));
+/** Albums of the last few scrobbles (cached 5 min). */
+function loadRecentAlbumKeys(username: string): Promise<Set<string>> {
+    return cached(
+        `recent:${username.toLowerCase()}`,
+        async () => {
+            const recent = await getRecentTracks(username, RECENT_TRACKS_COUNT);
+            return new Set(
+                recent
+                    .filter((t) => t.album?.['#text'])
+                    .map((t) => albumKey(t.artist['#text'], t.album['#text'])),
+            );
+        },
+        RECENT_TTL_MS,
+    );
 }
 
-// ---------------------------------------------------------------------------
-// Set helpers
-// ---------------------------------------------------------------------------
-
-function intersect(a: Set<string>, b: Set<string>): Set<string> {
-    const out = new Set<string>();
-    for (const x of a) if (b.has(x)) out.add(x);
-    return out;
-}
-
-/** Union of the top artists (lowercased names) across a set of tags. */
-async function unionTagArtists(tags: string[]): Promise<Set<string>> {
-    const lists = await Promise.all(tags.map((t) => getTagTopArtists(t).catch(() => [])));
-    const set = new Set<string>();
-    for (const list of lists) for (const a of list) set.add(a.name.toLowerCase());
-    return set;
+/** The user's plays of an artist; for a collaboration, of its most played part. */
+function artistPlays(library: Library, name: string): number {
+    return Math.max(...artistKeys(name).map((k) => library.plays.get(k) ?? 0));
 }
 
 // ---------------------------------------------------------------------------
@@ -83,41 +131,38 @@ async function unionTagArtists(tags: string[]): Promise<Set<string>> {
 // ---------------------------------------------------------------------------
 
 /**
- * A weighted-random album from the user's favorites, skipping recently played.
- * When `allowedArtists` is set, the pool is first narrowed to albums whose
- * artist is in that set (the combined genre/mood/decade/"now" filter). `filters`
- * is the list of applied tags, used only to build the localized reason.
+ * A weighted-random album from the user's favorites that is out of rotation:
+ * not played in the last 3 months or the last few scrobbles, and not among the
+ * recently rolled albums. Returns null when every favorite is in rotation —
+ * the caller then falls back to discovery.
  */
 async function recommendFavorites(
-    profile: Profile,
-    allowedArtists: Set<string> | null,
-    filters: string[],
-    now: boolean,
+    username: string,
+    rolled: Set<string>,
 ): Promise<AlbumRecommendation | null> {
-    const base = allowedArtists
-        ? profile.topAlbums.filter((a) => allowedArtists.has(a.artist.name.toLowerCase()))
-        : profile.topAlbums;
-    if (base.length === 0) return null;
+    const [profile, recent] = await Promise.all([
+        loadProfile(username),
+        loadRecentAlbumKeys(username),
+    ]);
 
-    const pool = base.filter((a) => !profile.recentAlbumKeys.has(albumKey(a.artist.name, a.name)));
-    const candidates = pool.length > 0 ? pool : base;
-    const chosen = weightedPick(candidates, (a) => Number(a.playcount) || 1);
+    const pool = profile.favorites.filter(
+        (f) => !profile.rotationKeys.has(f.key) && !recent.has(f.key) && !rolled.has(f.key),
+    );
+    const chosen = weightedPick(pool, (f) => f.plays || 1);
     if (!chosen) return null;
 
-    const imageUrl = await resolveCover(pickImage(chosen.image), chosen.mbid || null);
-    const playcount = Number(chosen.playcount) || 0;
+    const { album, plays } = chosen;
+    const imageUrl = await resolveCover(pickImage(album.image), album.mbid || null);
 
     return {
-        name: chosen.name,
-        artist: chosen.artist.name,
-        url: chosen.url,
+        name: album.name,
+        artist: album.artist.name,
+        url: album.url,
         imageUrl,
         mode: 'rediscovery',
-        reason:
-            allowedArtists !== null
-                ? { kind: 'rediscovery_filtered', filters, now, playcount }
-                : { kind: 'rediscovery', playcount },
-        playcount: Number(chosen.playcount) || null,
+        source: 'lastfm',
+        reason: { kind: 'rediscovery', playcount: plays },
+        playcount: plays || null,
     };
 }
 
@@ -125,31 +170,46 @@ async function recommendFavorites(
 // Discovery
 // ---------------------------------------------------------------------------
 
-interface DiscoverReason {
-    filtered: boolean;
-    filters: string[];
-    now: boolean;
+/**
+ * A weighted-random album of a discovered artist. For an artist the user has
+ * sampled (some plays, below KNOWN_MIN_PLAYS) the most popular album is likely
+ * the one they heard, so each pick is checked against the user's own playcount
+ * and skipped if played. Returns null when nothing unplayed turns up.
+ */
+async function pickUnplayedAlbum(
+    username: string,
+    artist: string,
+    albums: LastfmArtistAlbum[],
+    sampled: boolean,
+): Promise<LastfmArtistAlbum | null> {
+    const pool = [...albums];
+    for (let check = 0; check < MAX_PLAYED_CHECKS; check++) {
+        const album = weightedPick(pool, (a) => Number(a.playcount) || 1);
+        if (!album || !sampled) return album;
+        const played = await getUserAlbumPlaycount(username, artist, album.name).catch(() => 0);
+        if (played === 0) return album;
+        pool.splice(pool.indexOf(album), 1);
+    }
+    return null;
 }
 
 /**
- * Discovery via similar artists: seed artist (from the given pool) → Last.fm
- * similar artists → drop the ones you already listen to → top album of the
- * picked artist. `restrictTo`, when set, keeps only discovered artists in that
- * set (the genre/mood/decade filter). Seeded from all-time top artists for the
- * unfiltered mix, or from this week's chart when "now" is on.
+ * Discovery via similar artists: seed artist (from the user's top artists) →
+ * Last.fm similar artists → drop the artists the user knows (KNOWN_MIN_PLAYS+)
+ * → an album of the picked artist the user hasn't played. Seeds are weighted
+ * by √playcount so a few dominant artists don't own most of the rolls.
  */
 async function discoverFromSeeds(
-    profile: Profile,
-    seeds: { name: string; playcount: string }[],
-    restrictTo: Set<string> | null,
-    reason: DiscoverReason,
+    username: string,
+    rolled: Set<string>,
 ): Promise<AlbumRecommendation | null> {
-    if (seeds.length === 0) return null;
+    const library = await loadLibrary(username);
+    if (library.seeds.length === 0) return null;
 
     // Try a few seeds in case similar artists are empty or all already known.
-    const seedPool = [...seeds];
+    const seedPool = [...library.seeds];
     for (let attempt = 0; attempt < 5 && seedPool.length > 0; attempt++) {
-        const seed = weightedPick(seedPool, (a) => Number(a.playcount) || 1);
+        const seed = weightedPick(seedPool, (s) => Math.sqrt(s.plays));
         if (!seed) break;
         // remove the seed from the pool so we don't retry it
         seedPool.splice(seedPool.indexOf(seed), 1);
@@ -161,14 +221,10 @@ async function discoverFromSeeds(
             continue;
         }
 
-        const fresh = similar.filter((s) => !profile.topArtistNames.has(s.name.toLowerCase()));
-        let candidates = fresh.length > 0 ? fresh : similar;
-        if (restrictTo) {
-            candidates = candidates.filter((s) => restrictTo.has(s.name.toLowerCase()));
-        }
-        if (candidates.length === 0) continue;
-
-        const pickedArtist = weightedPick(candidates, (s) => (Number(s.match) || 0.01) * 100);
+        // Only new or barely sampled artists — never fall back to known ones,
+        // which would be mislabeled as a discovery.
+        const fresh = similar.filter((s) => artistPlays(library, s.name) < KNOWN_MIN_PLAYS);
+        const pickedArtist = weightedPick(fresh, (s) => (Number(s.match) || 0.01) * 100);
         if (!pickedArtist) continue;
 
         let albums;
@@ -177,9 +233,10 @@ async function discoverFromSeeds(
         } catch {
             continue;
         }
-        if (albums.length === 0) continue;
 
-        const album = weightedPick(albums, (a) => Number(a.playcount) || 1);
+        const unseen = albums.filter((a) => !rolled.has(albumKey(pickedArtist.name, a.name)));
+        const sampled = artistPlays(library, pickedArtist.name) > 0;
+        const album = await pickUnplayedAlbum(username, pickedArtist.name, unseen, sampled);
         if (!album) continue;
 
         // The top-albums list often lacks covers/mbid — pull the details.
@@ -205,14 +262,8 @@ async function discoverFromSeeds(
             url,
             imageUrl: cover,
             mode: 'discovery',
-            reason: reason.filtered
-                ? {
-                      kind: 'discovery_filtered',
-                      filters: reason.filters,
-                      now: reason.now,
-                      seedName: seed.name,
-                  }
-                : { kind: 'discovery', seedName: seed.name },
+            source: 'lastfm',
+            reason: { kind: 'discovery', seedName: seed.name },
             playcount: null,
         };
     }
@@ -220,156 +271,30 @@ async function discoverFromSeeds(
     return null;
 }
 
-/**
- * Discovery scoped to tags with no "now" seed: a weighted-random album from the
- * union of the selected tags' top albums, narrowed to artists that match every
- * dimension (`allowedArtists`) and dropping artists the user already listens to.
- * Weighted by list position since tag albums carry no playcount.
- */
-async function discoverFromTagAlbums(
-    profile: Profile,
-    tags: string[],
-    allowedArtists: Set<string>,
-    filters: string[],
-): Promise<AlbumRecommendation | null> {
-    const lists = await Promise.all(tags.map((t) => getTagTopAlbums(t).catch(() => [])));
-    const seen = new Set<string>();
-    const albums: LastfmTagAlbum[] = [];
-    for (const list of lists) {
-        for (const a of list) {
-            const key = albumKey(a.artist.name, a.name);
-            if (!seen.has(key)) {
-                seen.add(key);
-                albums.push(a);
-            }
-        }
-    }
-
-    // AND across dimensions: keep albums whose artist matches every dimension.
-    const inAllowed = albums.filter((a) => allowedArtists.has(a.artist.name.toLowerCase()));
-    const base = inAllowed.length > 0 ? inAllowed : albums;
-    if (base.length === 0) return null;
-
-    // Prefer artists the user doesn't already listen to.
-    const fresh = base.filter((a) => !profile.topArtistNames.has(a.artist.name.toLowerCase()));
-    const candidates = fresh.length > 0 ? fresh : base;
-
-    // Higher weight for earlier (more popular) entries.
-    const chosen = weightedPick(candidates, (a) => candidates.length - candidates.indexOf(a));
-    if (!chosen) return null;
-
-    // The tag list lacks covers/mbid — pull the album details.
-    let imageUrl = pickImage(chosen.image);
-    let mbid = chosen.mbid || null;
-    let url = chosen.url;
-    try {
-        const info = await getAlbumInfo(chosen.artist.name, chosen.name);
-        if (info) {
-            imageUrl = info.imageUrl ?? imageUrl;
-            mbid = info.mbid ?? mbid;
-            url = info.url ?? url;
-        }
-    } catch {
-        // fall back to the data from the list
-    }
-
-    const cover = await resolveCover(imageUrl, mbid);
-
-    return {
-        name: chosen.name,
-        artist: chosen.artist.name,
-        url,
-        imageUrl: cover,
-        mode: 'discovery',
-        reason: { kind: 'discovery_filtered', filters, now: false },
-        playcount: null,
-    };
-}
-
 // ---------------------------------------------------------------------------
-// Unified entry point
+// Entry point
 // ---------------------------------------------------------------------------
 
 export interface RecommendOptions {
     discovery: number;
-    genres: string[];
-    moods: string[];
-    decades: string[];
-    now: boolean;
+    /** Recently rolled albums (the stored history) — never offered again. */
+    recentRolls?: AlbumRecommendation[];
 }
 
 /**
- * The one recommendation entry point. Genre / mood / decade are optional
- * multi-select tag filters (OR within a dimension, AND across dimensions);
- * `now` restricts to artists on this week's chart. With no filters this is the
- * plain favorites/discovery mix. A coin flip on `discovery` (0–1) picks the mode
- * each roll, falling back to the other mode, then to `no_matches` when filters
- * leave nothing.
+ * The one recommendation entry point for the Last.fm mode. A coin flip on
+ * `discovery` (0–1) picks favorites or discovery each roll, falling back to the
+ * other mode when the chosen one yields nothing.
  */
 export async function recommend(
     username: string,
     opts: RecommendOptions,
 ): Promise<AlbumRecommendation> {
-    const profile = await loadProfile(username);
-
-    if (profile.topAlbums.length === 0 && profile.topArtists.length === 0) {
-        throw new Error('No data in your Last.fm profile — listen to some music first.');
-    }
-
-    const tagDimensions = [opts.genres, opts.moods, opts.decades].filter((d) => d.length > 0);
-    const allTags = [...opts.genres, ...opts.moods, ...opts.decades];
-
-    // Artists that match every selected tag dimension (OR within, AND across).
-    let tagArtists: Set<string> | null = null;
-    if (tagDimensions.length > 0) {
-        const dimSets = await Promise.all(tagDimensions.map(unionTagArtists));
-        tagArtists = dimSets.reduce<Set<string> | null>(
-            (acc, s) => (acc ? intersect(acc, s) : s),
-            null,
-        );
-    }
-
-    // "Now": this week's artists. Narrows the favorites pool and seeds discovery.
-    // With no weekly data (a fresh week) we drop the filter and degrade to the
-    // normal mix rather than failing — matching the old "Right now" behavior.
-    let weekly: LastfmWeeklyArtist[] = [];
-    let weeklySet: Set<string> | null = null;
-    if (opts.now) {
-        weekly = await loadWeeklyArtists(username);
-        if (weekly.length > 0) weeklySet = new Set(weekly.map((a) => a.name.toLowerCase()));
-    }
-    const nowActive = weeklySet !== null;
-
-    // Favorites pool restriction = tag filter AND weekly filter (whichever apply).
-    let favArtists: Set<string> | null = tagArtists;
-    if (weeklySet) favArtists = favArtists ? intersect(favArtists, weeklySet) : weeklySet;
-
-    const hasFilters = tagArtists !== null || nowActive;
-
-    const favorites = () => recommendFavorites(profile, favArtists, allTags, nowActive);
-
-    const discovery = () => {
-        // Unfiltered: classic discovery from all-time top artists.
-        if (!hasFilters) {
-            return discoverFromSeeds(profile, profile.topArtists, null, {
-                filtered: false,
-                filters: [],
-                now: false,
-            });
-        }
-        // "Now": seed from this week's artists; tags restrict the discovered ones.
-        if (nowActive) {
-            return discoverFromSeeds(profile, weekly, tagArtists, {
-                filtered: true,
-                filters: allTags,
-                now: true,
-            });
-        }
-        // Tags only: draw from the tags' top albums (AND-narrowed by artist).
-        return discoverFromTagAlbums(profile, allTags, tagArtists as Set<string>, allTags);
-    };
+    const rolled = new Set((opts.recentRolls ?? []).map(recommendationKey));
 
     const goDiscovery = Math.random() < clamp01(opts.discovery);
+    const favorites = () => recommendFavorites(username, rolled);
+    const discovery = () => discoverFromSeeds(username, rolled);
 
     const primary = goDiscovery ? await discovery() : await favorites();
     if (primary) return primary;
@@ -377,8 +302,7 @@ export async function recommend(
     const fallback = goDiscovery ? await favorites() : await discovery();
     if (fallback) return fallback;
 
-    if (hasFilters) throw new Error('no_matches');
-    throw new Error('Could not pick an album. Please try again.');
+    throw new Error('Could not pick an album (empty profile or nothing new to offer).');
 }
 
 function clamp01(n: number): number {

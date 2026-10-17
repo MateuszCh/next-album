@@ -1,11 +1,14 @@
 import { createHash } from 'crypto';
 import { rateLimited } from './limiter';
+import { getUserAgent, UPSTREAM_TIMEOUT_MS } from '@/lib/userAgent';
 
 const API_ROOT = 'https://ws.audioscrobbler.com/2.0/';
-const USER_AGENT = 'next-album/0.1 (https://github.com/)';
 
 // Rate limit exceeded — Last.fm error code 29, or HTTP 429.
 const RATE_LIMIT_CODE = 29;
+// Temporary Last.fm errors worth retrying: 8 operation failed, 11 service
+// offline, 16 temporarily unavailable. HTTP 5xx is retried too.
+const TRANSIENT_CODES = new Set([RATE_LIMIT_CODE, 8, 11, 16]);
 const MAX_RETRIES = 3;
 const BACKOFF_MS = [600, 1500, 3000];
 
@@ -58,7 +61,9 @@ async function doFetch<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
     const res = await fetch(url, {
         method,
         cache: 'no-store',
-        headers: { 'User-Agent': USER_AGENT },
+        headers: { 'User-Agent': getUserAgent() },
+        // Also bounds reading the body below.
+        signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
 
     let data: (T & { error?: number; message?: string }) | null = null;
@@ -82,8 +87,14 @@ async function doFetch<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
     return data as T;
 }
 
+function isRetryable(err: unknown): boolean {
+    if (!(err instanceof LastfmError) || err.code === undefined) return false;
+    return TRANSIENT_CODES.has(err.code) || (err.code >= 500 && err.code < 600);
+}
+
 /**
- * Runs a request through the limiter, retrying with backoff on rate-limit errors.
+ * Runs a request through the limiter, retrying with backoff on rate-limit and
+ * transient errors. Timeouts are not retried — they already waited long enough.
  */
 async function request<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
     let attempt = 0;
@@ -91,8 +102,7 @@ async function request<T>(url: string, method: 'GET' | 'POST'): Promise<T> {
         try {
             return await rateLimited(() => doFetch<T>(url, method));
         } catch (err) {
-            const isRateLimit = err instanceof LastfmError && err.code === RATE_LIMIT_CODE;
-            if (!isRateLimit || attempt >= MAX_RETRIES) throw err;
+            if (!isRetryable(err) || attempt >= MAX_RETRIES) throw err;
             await sleep(BACKOFF_MS[Math.min(attempt, BACKOFF_MS.length - 1)]);
             attempt += 1;
         }

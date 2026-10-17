@@ -5,6 +5,7 @@
 // their own document, at low volume.
 
 import { getUsersCollection, type UserDoc } from '@/lib/db';
+import { recommendationKey as albumKey } from '@/lib/identity';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 const HISTORY_CAP = 50;
@@ -16,11 +17,6 @@ export interface UserData {
 }
 
 const EMPTY: UserData = { lastAlbum: null, history: [], saved: [] };
-
-/** Identity key for dedup — mirrors `albumKey` in the recommendation engine. */
-function albumKey(album: AlbumRecommendation): string {
-    return `${album.artist}::${album.name}`.toLowerCase();
-}
 
 function userId(username: string): string {
     return username.toLowerCase();

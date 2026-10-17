@@ -13,6 +13,12 @@ const searchUrl = (artist: string, album: string, service: 'spotify' | 'ytm') =>
         : `https://music.youtube.com/search?q=${q}`;
 };
 
+const MODE_BADGE: Record<AlbumRecommendation['mode'], string> = {
+    discovery: 'card.discovery',
+    rediscovery: 'card.favorites',
+    search: 'card.search',
+};
+
 export function AlbumCard({
     album,
     saved,
@@ -20,9 +26,9 @@ export function AlbumCard({
 }: {
     album: AlbumRecommendation;
     // Saved state is owned by the parent (backed by the DB); the card just renders
-    // it and reports toggles.
+    // it and reports toggles. Without `onToggleSave` (logged out) there's no star.
     saved: boolean;
-    onToggleSave: () => void;
+    onToggleSave?: () => void;
 }) {
     const { t } = useI18n();
     // Show the fast native cover immediately, then swap to the sharp 600x600
@@ -72,36 +78,38 @@ export function AlbumCard({
                         ♪
                     </div>
                 )}
-                <span className="badge">
-                    {album.mode === 'discovery' ? t('card.discovery') : t('card.favorites')}
-                </span>
-                {album.genre && <span className="badge badge-genre">{album.genre}</span>}
-                <button
-                    type="button"
-                    className={`save-btn${saved ? ' saved' : ''}`}
-                    onClick={onToggleSave}
-                    aria-pressed={saved}
-                    aria-label={saved ? t('card.unsave') : t('card.save')}
-                    title={saved ? t('card.unsave') : t('card.save')}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden width="20" height="20">
-                        <path
-                            d="M12 17.3l-5.4 3.2 1.4-6.1-4.7-4.1 6.2-.5L12 4l2.5 5.8 6.2.5-4.7 4.1 1.4 6.1z"
-                            fill={saved ? 'currentColor' : 'none'}
-                            stroke="currentColor"
-                            strokeWidth="1.6"
-                            strokeLinejoin="round"
-                        />
-                    </svg>
-                </button>
+                <span className="badge">{t(MODE_BADGE[album.mode])}</span>
+                {onToggleSave && (
+                    <button
+                        type="button"
+                        className={`save-btn${saved ? ' saved' : ''}`}
+                        onClick={onToggleSave}
+                        aria-pressed={saved}
+                        aria-label={saved ? t('card.unsave') : t('card.save')}
+                        title={saved ? t('card.unsave') : t('card.save')}
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden width="20" height="20">
+                            <path
+                                d="M12 17.3l-5.4 3.2 1.4-6.1-4.7-4.1 6.2-.5L12 4l2.5 5.8 6.2.5-4.7 4.1 1.4 6.1z"
+                                fill={saved ? 'currentColor' : 'none'}
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinejoin="round"
+                            />
+                        </svg>
+                    </button>
+                )}
             </div>
             <div className="card-body">
                 <h2 className="album-title">{album.name}</h2>
-                <p className="album-artist">{album.artist}</p>
+                <p className="album-artist">
+                    {album.artist}
+                    {album.year ? ` · ${album.year}` : ''}
+                </p>
                 <p className="reason">{formatReason(t, album.reason)}</p>
                 <div className="card-links">
                     <a className="btn btn-ghost" href={album.url} target="_blank" rel="noreferrer">
-                        Last.fm
+                        {album.source === 'discogs' ? 'Discogs' : 'Last.fm'}
                     </a>
                     <a
                         className="btn btn-ghost"
