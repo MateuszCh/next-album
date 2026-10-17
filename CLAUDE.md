@@ -83,10 +83,15 @@ Next.js 15 (App Router) + React 19 + TypeScript. The app picks one album to
 listen to, in **two modes** (tabs in `src/app/page.tsx`, remembered in
 localStorage `appMode`):
 
-- **For me** (`lastfm`) — from the logged-in user's Last.fm profile, steered only
-  by the favorites ↔ discovery slider. No filters.
+- **For me** (`lastfm`) — from the user's Last.fm profile, steered only by the
+  favorites ↔ discovery slider. No filters. Needs a Last.fm username: a Last.fm
+  login, or an email account with Last.fm linked (otherwise the tab shows a
+  login / "Connect Last.fm" hero).
 - **Find an album** (`search`) — a random well-loved album from **Discogs** for
-  genre / decade / country filters. No slider and **no Last.fm login needed**.
+  genre / decade / country filters. No slider and **no login needed**.
+
+Logging in is optional (`/login`: Last.fm, or email + password). See "Auth &
+access control".
 
 **All Last.fm communication and request signing are server-only** — the
 `shared_secret` never reaches the browser, and the Last.fm session key isn't
@@ -96,9 +101,10 @@ Import alias: `@/*` → `src/*`.
 ### Request flow
 
 - **For me:** `GET /api/recommend?discovery=<0–1>` → `recommend()` in
-  `src/lib/recommend/engine.ts`. The route reads the username from the encrypted
-  session cookie (401 `not_logged_in` without one); the client sends only the
-  slider value. Failures return `502 {error:'pick_failed'}`.
+  `src/lib/recommend/engine.ts`. The route reads the Last.fm username from the
+  encrypted session cookie (401 `not_logged_in` without one — also for an email
+  account without Last.fm linked); the client sends only the slider value.
+  Failures return `502 {error:'pick_failed'}`.
 - **Find an album:** `GET /api/search?genre=<…>&decade=<…>&country=<…>` →
   `searchAlbum()` in `src/lib/search.ts`. No session needed (the password gate
   still applies). Each dimension is a **multi-select list**: repeated params
@@ -174,29 +180,43 @@ key only, no account) and then the Cover Art Archive via `resolveCover`.
 
 ### History & saved albums
 
-Stored per user in MongoDB (keyed by the session username), not in the browser,
-so they exist **only when logged in** — logged out, the search mode hides the
-`HistoryPanel` and the star on `AlbumCard`. Every roll (both modes) is pushed to
-a capped (50) history list and set as the last album; the star toggles an album
-into a saved list. `HistoryPanel` re-displays a past album without a refetch
-(recommendations are JSON-serializable; `AlbumRecommendation.mode` is
-`rediscovery` / `discovery` / `search`, `source` is `lastfm` / `discogs`).
-Server logic lives in `src/lib/userData.ts` behind the `/api/user-data` route
-(`GET` returns `{ lastAlbum, history, saved }`; `POST` dispatches on an `action`
-discriminator: `push` / `set-last` / `toggle-saved` / `remove-saved`). The client
-wrappers in `src/lib/history.ts` are thin async fetch calls; `src/app/page.tsx`
-owns the saved state and passes it to `AlbumCard`. UI-only preferences
-(`appMode`, `discovery`, and the `genre`/`decade`/`country` tag lists) live in
-localStorage.
+Every roll (both modes) is pushed to a capped (50) history list and set as the
+last album; the star toggles an album into a saved list. `HistoryPanel`
+re-displays a past album without a refetch (recommendations are
+JSON-serializable; `AlbumRecommendation.mode` is `rediscovery` / `discovery` /
+`search`, `source` is `lastfm` / `discogs`).
+
+`src/lib/history.ts` exposes one `UserDataStore` interface with two backends,
+picked by `src/app/page.tsx` (which owns the saved state and passes it to
+`AlbumCard`):
+
+- **Logged in** — `remoteStore`: per account in MongoDB (keyed by the session
+  `userId`) via `/api/user-data`. Server logic in `src/lib/userData.ts` (`GET`
+  returns `{ lastAlbum, history, saved }`; `POST` dispatches on an `action`
+  discriminator: `push` / `set-last` / `toggle-saved` / `remove-saved` /
+  `merge`).
+- **Logged out** — `guestStore`: the same data in localStorage (`guestData`).
+  After any login the page calls `mergeGuestData()` (`action: 'merge'`), which
+  folds it into the account (guest entries first, deduped) and clears it.
+
+The dedup/cap/merge logic is pure and shared by both in `src/lib/userDataOps.ts`
+(`sanitizeUserData` validates untrusted merge input and localStorage). UI-only
+preferences (`appMode`, `discovery`, and the `genre`/`decade`/`country` tag
+lists) live in localStorage.
 
 ### Database (`src/lib/db.ts`)
 
 MongoDB via the native driver. A single `MongoClient` is cached on `globalThis`
 (reused across requests and dev HMR). `MONGODB_URI`/`MONGODB_DB` are read lazily
 (same getter-that-throws pattern as the other secrets). One collection, `users`,
-holds one document per user (`_id` = lowercased username) with `lastAlbum`,
-`history`, `saved`, `updatedAt`. Only Node-runtime route handlers touch it; the
-Edge middleware does not.
+holds one document per account with `lastAlbum`, `history`, `saved`,
+`updatedAt`. `_id` (= the session `userId`) is the lowercased Last.fm username
+for a Last.fm-only account, or `email:<address>` for an email account, which also
+has `email`, `passwordHash`, `createdAt` and — once linked — `lastfmUsername` +
+`lastfmKey` (lowercased; a unique partial index, created lazily in
+`getUsersCollection`, keeps one Last.fm account on at most one email account).
+`project()` in `userData.ts` never returns credentials. Only Node-runtime route
+handlers touch it; the Edge middleware does not.
 
 ### Last.fm client (`src/lib/lastfm/`)
 
@@ -239,7 +259,7 @@ plain `<img>` tags (no `next/image`).
 
 ### Auth & access control
 
-Two independent, both-optional layers plus the Last.fm OAuth session:
+Two independent, both-optional layers plus the (optional) account session:
 
 1. **Password gate** (`src/middleware.ts` + `src/lib/gate.ts`) — runs on the
    Edge for every non-static path. When `ACCESS_PASSWORD` is set, requests
@@ -247,15 +267,31 @@ Two independent, both-optional layers plus the Last.fm OAuth session:
    gate cookie stores an HMAC token (`gateToken`), not the password; changing
    the password invalidates all cookies. Uses Web Crypto so it runs in both Edge
    and Node runtimes.
-2. **Last.fm OAuth session** (`src/lib/session.ts`, iron-session) — login at
-   `/api/auth/login` redirects to Last.fm; `/api/auth/callback` exchanges the
-   token for `{username, sessionKey}` and saves only the username in an
-   encrypted, httpOnly cookie (`next_album_session`, 30-day).
-3. **Username allowlist** (`src/lib/access.ts`) — checked in the callback. If
-   `ALLOWED_LASTFM_USERS` is set and the account isn't on it, the session is not
-   saved and the user is redirected with `?error=not_allowed`.
+2. **Account session** (`src/lib/session.ts`, iron-session) — an encrypted,
+   httpOnly cookie (`next_album_session`, 30-day) holding `{ userId,
+   lastfmUsername?, email? }`; `getCurrentUser()` reads it (a legacy cookie with
+   only `username` maps to a Last.fm-only account). `/login` offers two ways in:
+   - **Last.fm** — `/api/auth/login` redirects to Last.fm; `/api/auth/callback`
+     exchanges the token for the username (the session key isn't kept) and
+     `resolveLastfmLogin` maps it to the email account it's linked to, if any.
+     `/api/auth/login?link=1` from a logged-in email account instead **links**
+     Last.fm to it (`linkLastfm`: `?error=lastfm_taken` if another email account
+     owns it; an existing Last.fm-only account's data is merged in and that
+     document deleted).
+   - **Email + password** — `POST /api/auth/register` / `POST /api/auth/email-login`
+     (`src/lib/accounts.ts`; scrypt hashes in `src/lib/password.ts`; passwords
+     8–200 chars; unknown emails still run a dummy hash). Registration is open
+     (the gate still applies). Both routes are throttled in memory
+     (`src/lib/throttle.ts`, shared with the gate): login per IP+email (5/15 min)
+     and per IP (20/15 min), registration per IP (10/h).
+3. **Last.fm username allowlist** (`src/lib/access.ts`) — checked in the callback
+   (login and link). If `ALLOWED_LASTFM_USERS` is set and the account isn't on
+   it, the session is not saved and the user is redirected with
+   `?error=not_allowed`. It does not restrict email accounts.
 
-`GET /api/me` returns the current session user; `POST /api/auth/logout` clears it.
+`GET /api/me` returns the current account (`lastfmUsername`, `email`, avatar;
+an email account's Last.fm link is refreshed from the DB);
+`POST /api/auth/logout` clears it.
 
 ## Conventions
 

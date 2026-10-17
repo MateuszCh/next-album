@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionFromCookies } from '@/lib/session';
+import { getCurrentUser } from '@/lib/session';
 import { recommend } from '@/lib/recommend/engine';
 import { getUserData } from '@/lib/userData';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
@@ -12,11 +12,11 @@ const HISTORY_TIMEOUT_MS = 1500;
  * The user's stored roll history, so recent picks don't come back. Optional: a
  * missing, slow or unreachable database just means no exclusion.
  */
-function recentRolls(username: string): Promise<AlbumRecommendation[]> {
+function recentRolls(userId: string): Promise<AlbumRecommendation[]> {
     const timeout = new Promise<AlbumRecommendation[]>((resolve) =>
         setTimeout(() => resolve([]), HISTORY_TIMEOUT_MS),
     );
-    const history = getUserData(username)
+    const history = getUserData(userId)
         .then((d) => d.history)
         .catch(() => []);
     return Promise.race([history, timeout]);
@@ -28,8 +28,9 @@ function recentRolls(username: string): Promise<AlbumRecommendation[]> {
  * session cookie. Filters live in the album search (`/api/search`).
  */
 export async function GET(req: NextRequest) {
-    const session = await getSessionFromCookies();
-    if (!session.username) {
+    // Needs a Last.fm username: a Last.fm login, or an email account with it linked.
+    const user = await getCurrentUser();
+    if (!user?.lastfmUsername) {
         return NextResponse.json({ error: 'not_logged_in' }, { status: 401 });
     }
 
@@ -37,9 +38,9 @@ export async function GET(req: NextRequest) {
     const discovery = discoveryParam !== null ? Number(discoveryParam) : 0.4;
 
     try {
-        const album = await recommend(session.username, {
+        const album = await recommend(user.lastfmUsername, {
             discovery,
-            recentRolls: await recentRolls(session.username),
+            recentRolls: await recentRolls(user.userId),
         });
         return NextResponse.json(album);
     } catch (err) {

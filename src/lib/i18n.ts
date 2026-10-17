@@ -37,6 +37,32 @@ const en: Dict = {
         "Log in with your Last.fm account and we'll pick a specific album to play — sometimes a favorite classic, sometimes something new from an artist similar to yours.",
     login: 'Log in with Last.fm',
 
+    'link.title': 'Connect Last.fm',
+    'link.subtitle':
+        "Connect your Last.fm account and we'll pick albums from your listening — your history and saved albums stay in this account.",
+    'link.button': 'Connect Last.fm',
+
+    'loginPage.home': 'Back to the app',
+    'loginPage.back': 'Back',
+    'loginPage.skip': 'Continue without logging in',
+    'loginPage.skipNote':
+        'Album search works without an account — your history stays in this browser.',
+    'loginPage.title': 'Log in',
+    'loginPage.subtitle':
+        'An account keeps your history and saved albums across devices. Albums you rolled before logging in are added to it.',
+    'loginPage.lastfm': 'With Last.fm',
+    'loginPage.lastfmNote': 'Unlocks the “For me” mode — picks based on what you listen to.',
+    'loginPage.or': 'or',
+    'loginPage.email': 'With email',
+    'loginPage.tab.login': 'Log in',
+    'loginPage.tab.register': 'Create account',
+    'loginPage.emailPlaceholder': 'Email',
+    'loginPage.passwordPlaceholder': 'Password',
+    'loginPage.passwordHint': 'At least {min} characters.',
+    'loginPage.submitLogin': 'Log in',
+    'loginPage.submitRegister': 'Create account',
+    'loginPage.working': 'One moment…',
+
     'mode.aria': 'Mode',
     'mode.lastfm': 'For me',
     'mode.search': 'Find an album',
@@ -75,6 +101,7 @@ const en: Dict = {
     'btn.rolling': 'Rolling…',
     'btn.lock': 'Lock',
     'btn.logout': 'Log out',
+    'btn.loginPage': 'Log in',
 
     'hint.default': 'Set the balance and click “Next Album”.',
     'hint.search': 'Set the filters (or leave them empty) and click “Next Album”.',
@@ -129,6 +156,12 @@ const en: Dict = {
     'error.wrong_password': 'Wrong password.',
     'error.too_many_attempts': 'Too many attempts. Try again later.',
     'error.gate_failed': 'Could not enter.',
+    'error.invalid_email': 'Enter a valid email address.',
+    'error.weak_password': 'The password must be 8–200 characters long.',
+    'error.email_taken': 'An account with this email already exists. Log in instead.',
+    'error.wrong_credentials': 'Wrong email or password.',
+    'error.lastfm_taken': 'This Last.fm account is already connected to another account.',
+    'error.server_error': 'Something went wrong on our side. Please try again.',
 };
 
 const pl: Dict = {
@@ -138,6 +171,33 @@ const pl: Dict = {
     'loggedOut.subtitle':
         'Zaloguj się kontem Last.fm, a my wybierzemy konkretny album do odsłuchania — czasem ulubiony klasyk, czasem coś nowego od artysty podobnego do Twoich.',
     login: 'Zaloguj przez Last.fm',
+
+    'link.title': 'Połącz z Last.fm',
+    'link.subtitle':
+        'Połącz konto Last.fm, a my wybierzemy albumy na podstawie tego, czego słuchasz — historia i zapisane albumy zostają na tym koncie.',
+    'link.button': 'Połącz z Last.fm',
+
+    'loginPage.home': 'Wróć do aplikacji',
+    'loginPage.back': 'Wróć',
+    'loginPage.skip': 'Kontynuuj bez logowania',
+    'loginPage.skipNote':
+        'Wyszukiwarka albumów działa bez konta — historia zostaje w tej przeglądarce.',
+    'loginPage.title': 'Zaloguj się',
+    'loginPage.subtitle':
+        'Konto przechowuje historię i zapisane albumy na wszystkich urządzeniach. Albumy wylosowane przed zalogowaniem zostaną do niego dodane.',
+    'loginPage.lastfm': 'Przez Last.fm',
+    'loginPage.lastfmNote':
+        'Odblokowuje tryb „Dla mnie” — propozycje na podstawie tego, czego słuchasz.',
+    'loginPage.or': 'lub',
+    'loginPage.email': 'Przez e-mail',
+    'loginPage.tab.login': 'Logowanie',
+    'loginPage.tab.register': 'Załóż konto',
+    'loginPage.emailPlaceholder': 'E-mail',
+    'loginPage.passwordPlaceholder': 'Hasło',
+    'loginPage.passwordHint': 'Co najmniej {min} znaków.',
+    'loginPage.submitLogin': 'Zaloguj się',
+    'loginPage.submitRegister': 'Załóż konto',
+    'loginPage.working': 'Chwileczkę…',
 
     'mode.aria': 'Tryb',
     'mode.lastfm': 'Dla mnie',
@@ -177,6 +237,7 @@ const pl: Dict = {
     'btn.rolling': 'Losuję…',
     'btn.lock': 'Zablokuj',
     'btn.logout': 'Wyloguj',
+    'btn.loginPage': 'Zaloguj',
 
     'hint.default': 'Ustaw balans i kliknij „Następny album”.',
     'hint.search': 'Ustaw filtry (lub zostaw puste) i kliknij „Następny album”.',
@@ -230,6 +291,12 @@ const pl: Dict = {
     'error.wrong_password': 'Błędne hasło.',
     'error.too_many_attempts': 'Zbyt wiele prób. Spróbuj ponownie później.',
     'error.gate_failed': 'Nie udało się wejść.',
+    'error.invalid_email': 'Podaj poprawny adres e-mail.',
+    'error.weak_password': 'Hasło musi mieć od 8 do 200 znaków.',
+    'error.email_taken': 'Konto z tym adresem e-mail już istnieje. Zaloguj się.',
+    'error.wrong_credentials': 'Błędny e-mail lub hasło.',
+    'error.lastfm_taken': 'To konto Last.fm jest już połączone z innym kontem.',
+    'error.server_error': 'Coś poszło nie tak po naszej stronie. Spróbuj ponownie.',
 };
 
 export const dictionaries: Record<Lang, Dict> = { en, pl };

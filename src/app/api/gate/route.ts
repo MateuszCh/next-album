@@ -1,39 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GATE_COOKIE, deriveToken, gateToken, isGateEnabled, tokensEqual } from '@/lib/gate';
+import { clientIp, createAttemptLimiter } from '@/lib/throttle';
 
-// In-memory brute-force throttle. Per-instance (like cache.ts) — adequate for a
-// single-instance deploy. After MAX_FAILURES wrong attempts within WINDOW_MS the
-// IP is locked out until the window expires; a correct password resets it.
-const MAX_FAILURES = 5;
-const WINDOW_MS = 15 * 60 * 1000;
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function clientIp(req: NextRequest): string {
-    const fwd = req.headers.get('x-forwarded-for');
-    if (fwd) return fwd.split(',')[0]!.trim();
-    return req.headers.get('x-real-ip')?.trim() || 'unknown';
-}
-
-/** Returns true if the IP is currently locked out. */
-function isLocked(ip: string): boolean {
-    const entry = attempts.get(ip);
-    if (!entry) return false;
-    if (Date.now() > entry.resetAt) {
-        attempts.delete(ip);
-        return false;
-    }
-    return entry.count >= MAX_FAILURES;
-}
-
-function recordFailure(ip: string): void {
-    const now = Date.now();
-    const entry = attempts.get(ip);
-    if (!entry || now > entry.resetAt) {
-        attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    } else {
-        entry.count += 1;
-    }
-}
+// After 5 wrong attempts within 15 minutes the IP is locked out until the
+// window expires; a correct password resets it.
+const limiter = createAttemptLimiter({ max: 5, windowMs: 15 * 60 * 1000 });
 
 export async function POST(req: NextRequest) {
     if (!isGateEnabled()) {
@@ -41,7 +12,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ip = clientIp(req);
-    if (isLocked(ip)) {
+    if (limiter.isLocked(ip)) {
         return NextResponse.json({ error: 'too_many_attempts' }, { status: 429 });
     }
 
@@ -51,11 +22,11 @@ export async function POST(req: NextRequest) {
     const submitted = await deriveToken(body.password ?? '');
     const expected = await gateToken();
     if (!tokensEqual(submitted, expected)) {
-        recordFailure(ip);
+        limiter.recordFailure(ip);
         return NextResponse.json({ error: 'wrong_password' }, { status: 401 });
     }
 
-    attempts.delete(ip);
+    limiter.reset(ip);
     const res = NextResponse.json({ ok: true });
     res.cookies.set(GATE_COOKIE, expected, {
         httpOnly: true,

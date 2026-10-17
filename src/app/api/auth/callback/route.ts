@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/lastfm/auth';
-import { getSessionFromCookies } from '@/lib/session';
+import { getSessionFromCookies, currentUserOf, saveLogin } from '@/lib/session';
+import { isEmailAccount, linkLastfm, resolveLastfmLogin } from '@/lib/accounts';
 import { isUserAllowed } from '@/lib/access';
 import { OAUTH_NONCE_COOKIE, safeEqual } from '@/lib/oauth';
 
@@ -35,8 +36,25 @@ export async function GET(req: NextRequest) {
         }
 
         const session = await getSessionFromCookies();
-        session.username = username;
-        await session.save();
+        const current = currentUserOf(session);
+        const linking =
+            req.nextUrl.searchParams.get('link') === '1' &&
+            current !== null &&
+            isEmailAccount(current.userId);
+
+        if (linking) {
+            // Connect Last.fm to the logged-in email account (unlocks the Last.fm mode).
+            const result = await linkLastfm(current.userId, username);
+            if ('error' in result) {
+                const res = NextResponse.redirect(`${home}/?error=${result.error}`);
+                res.cookies.delete(OAUTH_NONCE_COOKIE);
+                return res;
+            }
+            await saveLogin(session, result);
+        } else {
+            // A Last.fm username linked to an email account logs into that account.
+            await saveLogin(session, await resolveLastfmLogin(username));
+        }
         const res = NextResponse.redirect(home + '/');
         res.cookies.delete(OAUTH_NONCE_COOKIE);
         return res;
