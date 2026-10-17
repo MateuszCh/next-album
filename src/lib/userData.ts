@@ -1,34 +1,36 @@
 // Server-side access to a user's stored data (last album, roll history, saved
-// albums), persisted per user in MongoDB and keyed by the Last.fm username from
-// the session. Dedup + cap logic mirrors what used to live client-side in
-// history.ts. Read-modify-write is fine here: traffic is a single user acting on
-// their own document, at low volume.
+// albums), persisted per account in MongoDB and keyed by the session's `userId`
+// (a Last.fm username, or `email:<address>` for email accounts — see
+// accounts.ts). Dedup + cap logic lives in userDataOps.ts, shared with the
+// logged-out localStorage store. Read-modify-write is fine here: traffic is a
+// single user acting on their own document, at low volume.
 
 import { getUsersCollection, type UserDoc } from '@/lib/db';
-import { recommendationKey as albumKey } from '@/lib/identity';
+import {
+    EMPTY_USER_DATA,
+    mergeUserData,
+    prependHistory,
+    removeFromSaved,
+    sanitizeUserData,
+    toggleInSaved,
+    type UserData,
+} from '@/lib/userDataOps';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
-const HISTORY_CAP = 50;
+export type { UserData };
 
-export interface UserData {
-    lastAlbum: AlbumRecommendation | null;
-    history: AlbumRecommendation[];
-    saved: AlbumRecommendation[];
+function docId(userId: string): string {
+    return userId.toLowerCase();
 }
 
-const EMPTY: UserData = { lastAlbum: null, history: [], saved: [] };
-
-function userId(username: string): string {
-    return username.toLowerCase();
-}
-
-async function loadDoc(username: string): Promise<UserDoc | null> {
+async function loadDoc(userId: string): Promise<UserDoc | null> {
     const users = await getUsersCollection();
-    return users.findOne({ _id: userId(username) });
+    return users.findOne({ _id: docId(userId) });
 }
 
+// Only the data fields — never credentials (`passwordHash`) — leave this module.
 function project(doc: UserDoc | null): UserData {
-    if (!doc) return { ...EMPTY };
+    if (!doc) return { ...EMPTY_USER_DATA };
     return {
         lastAlbum: doc.lastAlbum ?? null,
         history: doc.history ?? [],
@@ -37,17 +39,17 @@ function project(doc: UserDoc | null): UserData {
 }
 
 /** Persist the given fields, upserting the user document. */
-async function save(username: string, fields: Partial<UserDoc>): Promise<void> {
+async function save(userId: string, fields: Partial<UserDoc>): Promise<void> {
     const users = await getUsersCollection();
     await users.updateOne(
-        { _id: userId(username) },
+        { _id: docId(userId) },
         { $set: { ...fields, updatedAt: new Date() } },
         { upsert: true },
     );
 }
 
-export async function getUserData(username: string): Promise<UserData> {
-    return project(await loadDoc(username));
+export async function getUserData(userId: string): Promise<UserData> {
+    return project(await loadDoc(userId));
 }
 
 /**
@@ -55,49 +57,53 @@ export async function getUserData(username: string): Promise<UserData> {
  * it as the last shown album. Returns the updated history.
  */
 export async function pushHistory(
-    username: string,
+    userId: string,
     album: AlbumRecommendation,
 ): Promise<AlbumRecommendation[]> {
-    const doc = await loadDoc(username);
-    const key = albumKey(album);
-    const history = [album, ...(doc?.history ?? []).filter((a) => albumKey(a) !== key)].slice(
-        0,
-        HISTORY_CAP,
-    );
-    await save(username, { lastAlbum: album, history });
+    const doc = await loadDoc(userId);
+    const history = prependHistory(doc?.history ?? [], album);
+    await save(userId, { lastAlbum: album, history });
     return history;
 }
 
-export async function setLastAlbum(username: string, album: AlbumRecommendation): Promise<void> {
-    await save(username, { lastAlbum: album });
+export async function setLastAlbum(userId: string, album: AlbumRecommendation): Promise<void> {
+    await save(userId, { lastAlbum: album });
 }
 
 /** Toggle an album in the saved list; returns the new saved list and state. */
 export async function toggleSaved(
-    username: string,
+    userId: string,
     album: AlbumRecommendation,
 ): Promise<{ isSaved: boolean; saved: AlbumRecommendation[] }> {
-    const doc = await loadDoc(username);
-    const key = albumKey(album);
-    const current = doc?.saved ?? [];
-    if (current.some((a) => albumKey(a) === key)) {
-        const saved = current.filter((a) => albumKey(a) !== key);
-        await save(username, { saved });
-        return { isSaved: false, saved };
-    }
-    const saved = [album, ...current];
-    await save(username, { saved });
-    return { isSaved: true, saved };
+    const doc = await loadDoc(userId);
+    const result = toggleInSaved(doc?.saved ?? [], album);
+    await save(userId, { saved: result.saved });
+    return result;
 }
 
 /** Remove a specific album from the saved list; returns the updated list. */
 export async function removeSaved(
-    username: string,
+    userId: string,
     album: AlbumRecommendation,
 ): Promise<AlbumRecommendation[]> {
-    const doc = await loadDoc(username);
-    const key = albumKey(album);
-    const saved = (doc?.saved ?? []).filter((a) => albumKey(a) !== key);
-    await save(username, { saved });
+    const doc = await loadDoc(userId);
+    const saved = removeFromSaved(doc?.saved ?? [], album);
+    await save(userId, { saved });
     return saved;
+}
+
+/**
+ * Merge other data (a guest's localStorage lists, or a Last.fm-only account
+ * being linked) into the user's stored data. `incoming` is sanitized here, so
+ * raw client input is fine. Returns the merged data.
+ */
+export async function mergeInto(userId: string, incoming: unknown): Promise<UserData> {
+    const merged = mergeUserData(sanitizeUserData(incoming), project(await loadDoc(userId)));
+    await save(userId, merged);
+    return merged;
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+    const users = await getUsersCollection();
+    await users.deleteOne({ _id: docId(userId) });
 }

@@ -2,11 +2,15 @@
 
 import { useI18n } from '@/components/LanguageProvider';
 
-export function LoginButton() {
+/** Last.fm login. With `link`, connects Last.fm to the logged-in email account instead. */
+export function LoginButton({ link = false }: { link?: boolean }) {
     const { t } = useI18n();
     return (
-        <a className="btn btn-primary btn-big" href="/api/auth/login">
-            {t('login')}
+        <a
+            className="btn btn-primary btn-big"
+            href={link ? '/api/auth/login?link=1' : '/api/auth/login'}
+        >
+            {t(link ? 'link.button' : 'login')}
         </a>
     );
 }

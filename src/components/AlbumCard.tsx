@@ -25,8 +25,8 @@ export function AlbumCard({
     onToggleSave,
 }: {
     album: AlbumRecommendation;
-    // Saved state is owned by the parent (backed by the DB); the card just renders
-    // it and reports toggles. Without `onToggleSave` (logged out) there's no star.
+    // Saved state is owned by the parent (DB or localStorage); the card just renders
+    // it and reports toggles. Without `onToggleSave` there's no star.
     saved: boolean;
     onToggleSave?: () => void;
 }) {

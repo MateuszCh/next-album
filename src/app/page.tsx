@@ -14,20 +14,14 @@ import { errorMessage } from '@/lib/i18n';
 import { GENRES } from '@/lib/recommend/genres';
 import { DECADES } from '@/lib/recommend/decades';
 import { COUNTRIES } from '@/lib/recommend/countries';
-import {
-    albumKey,
-    fetchUserData,
-    isSaved,
-    pushHistory,
-    removeSaved as removeSavedRemote,
-    setLastAlbum,
-    toggleSaved,
-} from '@/lib/history';
+import { albumKey, guestStore, isSaved, mergeGuestData, remoteStore } from '@/lib/history';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 interface Me {
     loggedIn: boolean;
-    username?: string;
+    // Set for a Last.fm login or an email account with Last.fm linked.
+    lastfmUsername?: string | null;
+    email?: string | null;
     imageUrl?: string | null;
     gateEnabled?: boolean;
 }
@@ -89,31 +83,36 @@ export default function Home() {
     const rollId = useRef(0);
 
     const loggedIn = me?.loggedIn ?? false;
+    // The Last.fm mode needs a Last.fm username, not just any account.
+    const hasLastfm = Boolean(me?.lastfmUsername);
+    // Logged in: the account's data (MongoDB); logged out: this browser's localStorage.
+    const store = loggedIn ? remoteStore : guestStore;
 
     useEffect(() => {
         fetch('/api/me')
             .then((r) => r.json())
             .then((data: Me) => {
                 setMe(data);
-                // A remembered mode wins; otherwise logged-in users start in the
-                // Last.fm mode and everyone else in the search (no account needed).
+                // A remembered mode wins; otherwise Last.fm users start in the
+                // Last.fm mode and everyone else in the search (no Last.fm needed).
                 const storedMode = window.localStorage.getItem('appMode') as AppMode | null;
                 setMode(
                     storedMode && APP_MODES.includes(storedMode)
                         ? storedMode
-                        : data.loggedIn
+                        : data.lastfmUsername
                           ? 'lastfm'
                           : 'search',
                 );
-                // Load the user's stored data (last album, history, saved) from the
-                // DB only once we know they're logged in.
-                if (data.loggedIn) {
-                    fetchUserData().then((ud) => {
-                        if (ud.lastAlbum) setAlbum(ud.lastAlbum);
-                        setHistory(ud.history);
-                        setSaved(ud.saved);
-                    });
-                }
+                // Logged in: first fold any guest (localStorage) data into the
+                // account, then load the account's data. Logged out: the guest data.
+                const load = data.loggedIn
+                    ? mergeGuestData().then((merged) => merged ?? remoteStore.fetch())
+                    : guestStore.fetch();
+                load.then((ud) => {
+                    if (ud.lastAlbum) setAlbum(ud.lastAlbum);
+                    setHistory(ud.history);
+                    setSaved(ud.saved);
+                });
             })
             .catch(() => {
                 setMe({ loggedIn: false });
@@ -173,17 +172,15 @@ export default function Home() {
             // On error `data.error` is a code; store it and localize at render.
             if (!res.ok) throw new Error(data.error ?? 'generic');
             setAlbum(data as AlbumRecommendation);
-            if (loggedIn) {
-                const nextHistory = await pushHistory(data as AlbumRecommendation);
-                if (nextHistory) setHistory(nextHistory);
-            }
+            const nextHistory = await store.push(data as AlbumRecommendation);
+            if (nextHistory) setHistory(nextHistory);
         } catch (e) {
             if (id !== rollId.current) return;
             setError(e instanceof Error ? e.message : 'generic');
         } finally {
             if (id === rollId.current) setLoading(false);
         }
-    }, [mode, discovery, filters, loggedIn]);
+    }, [mode, discovery, filters, store]);
 
     const handleToggleTag = useCallback((dimension: TagDimension, tag: string) => {
         setFilters((f) => {
@@ -201,37 +198,46 @@ export default function Home() {
         DIMENSIONS.forEach((dim) => window.localStorage.removeItem(dim));
     }, []);
 
-    const showAlbum = useCallback((picked: AlbumRecommendation) => {
-        setAlbum(picked);
-        setError(null);
-        setLastAlbum(picked);
-    }, []);
+    const showAlbum = useCallback(
+        (picked: AlbumRecommendation) => {
+            setAlbum(picked);
+            setError(null);
+            store.setLast(picked);
+        },
+        [store],
+    );
 
     // Toggle the shown album in/out of saved. Optimistic: update local state
-    // immediately, then reconcile with the server's authoritative list.
-    const toggleSave = useCallback((picked: AlbumRecommendation) => {
-        const key = albumKey(picked);
-        setSaved((current) =>
-            current.some((a) => albumKey(a) === key)
-                ? current.filter((a) => albumKey(a) !== key)
-                : [picked, ...current],
-        );
-        toggleSaved(picked).then((res) => {
-            if (res) setSaved(res.saved);
-        });
-    }, []);
+    // immediately, then reconcile with the store's authoritative list.
+    const toggleSave = useCallback(
+        (picked: AlbumRecommendation) => {
+            const key = albumKey(picked);
+            setSaved((current) =>
+                current.some((a) => albumKey(a) === key)
+                    ? current.filter((a) => albumKey(a) !== key)
+                    : [picked, ...current],
+            );
+            store.toggleSaved(picked).then((res) => {
+                if (res) setSaved(res.saved);
+            });
+        },
+        [store],
+    );
 
-    const removeSaved = useCallback((picked: AlbumRecommendation) => {
-        const key = albumKey(picked);
-        setSaved((current) => current.filter((a) => albumKey(a) !== key));
-        removeSavedRemote(picked).then((next) => {
-            if (next) setSaved(next);
-        });
-    }, []);
+    const removeSaved = useCallback(
+        (picked: AlbumRecommendation) => {
+            const key = albumKey(picked);
+            setSaved((current) => current.filter((a) => albumKey(a) !== key));
+            store.removeSaved(picked).then((next) => {
+                if (next) setSaved(next);
+            });
+        },
+        [store],
+    );
 
     const logout = useCallback(async () => {
-        // Log out of Last.fm only — the gate stays unlocked. Full navigation so the
-        // logged-out state (login screen) is rendered fresh.
+        // Log out of the account only — the gate stays unlocked. Full navigation so
+        // the logged-out state (guest data, login screen) is rendered fresh.
         await fetch('/api/auth/logout', { method: 'POST' });
         window.location.href = '/';
     }, []);
@@ -256,27 +262,33 @@ export default function Home() {
 
     const activeFilterCount = DIMENSIONS.reduce((n, dim) => n + filters[dim].length, 0);
 
-    // The Last.fm mode needs an account; logged out it shows the login screen.
-    const showLogin = mode === 'lastfm' && !loggedIn;
+    // The Last.fm mode needs Last.fm: logged out it shows the login screen, and an
+    // email account without Last.fm gets the same screen to connect it.
+    const showLogin = mode === 'lastfm' && !hasLastfm;
+    const displayName = me?.lastfmUsername ?? me?.email ?? '';
 
     return (
         <main className="page">
             <div className="topbar">
                 <Logo />
                 <div className="topbar-actions">
-                    {me && (me.loggedIn || me.gateEnabled) && (
+                    {me && (
                         <div className="user-chip">
                             {me.loggedIn && me.imageUrl && <img src={me.imageUrl} alt="" />}
-                            {me.loggedIn && <span>{me.username}</span>}
+                            {me.loggedIn && <span>{displayName}</span>}
                             {me.gateEnabled && (
                                 <button className="btn btn-ghost" onClick={lock}>
                                     {t('btn.lock')}
                                 </button>
                             )}
-                            {me.loggedIn && (
+                            {me.loggedIn ? (
                                 <button className="btn btn-ghost" onClick={logout}>
                                     {t('btn.logout')}
                                 </button>
+                            ) : (
+                                <a className="btn btn-ghost" href="/login">
+                                    {t('btn.loginPage')}
+                                </a>
                             )}
                         </div>
                     )}
@@ -312,9 +324,19 @@ export default function Home() {
                                 <span className="hero-mark">
                                     <LogoMark />
                                 </span>
-                                <h1 className="title">{t('loggedOut.title')}</h1>
-                                <p className="subtitle">{t('loggedOut.subtitle')}</p>
-                                <LoginButton />
+                                {loggedIn ? (
+                                    <>
+                                        <h1 className="title">{t('link.title')}</h1>
+                                        <p className="subtitle">{t('link.subtitle')}</p>
+                                        <LoginButton link />
+                                    </>
+                                ) : (
+                                    <>
+                                        <h1 className="title">{t('loggedOut.title')}</h1>
+                                        <p className="subtitle">{t('loggedOut.subtitle')}</p>
+                                        <LoginButton />
+                                    </>
+                                )}
                                 {error && <div className="error">{errorMessage(t, error)}</div>}
                             </div>
                         ) : (
@@ -322,7 +344,7 @@ export default function Home() {
                                 {mode === 'lastfm' ? (
                                     <>
                                         <h1 className="title">
-                                            {t('loggedIn.title', { username: me.username ?? '' })}
+                                            {t('loggedIn.title', { username: displayName })}
                                         </h1>
                                         <p className="subtitle">{t('loggedIn.subtitle')}</p>
                                     </>
@@ -386,9 +408,7 @@ export default function Home() {
                                         key={albumKey(album)}
                                         album={album}
                                         saved={isSaved(saved, album)}
-                                        onToggleSave={
-                                            loggedIn ? () => toggleSave(album) : undefined
-                                        }
+                                        onToggleSave={() => toggleSave(album)}
                                     />
                                 )}
                                 {!album && !error && (
@@ -397,15 +417,13 @@ export default function Home() {
                                     </p>
                                 )}
 
-                                {loggedIn && (
-                                    <HistoryPanel
-                                        history={history}
-                                        saved={saved}
-                                        onPick={showAlbum}
-                                        onToggleSave={toggleSave}
-                                        onRemoveSaved={removeSaved}
-                                    />
-                                )}
+                                <HistoryPanel
+                                    history={history}
+                                    saved={saved}
+                                    onPick={showAlbum}
+                                    onToggleSave={toggleSave}
+                                    onRemoveSaved={removeSaved}
+                                />
                             </>
                         )}
                     </>

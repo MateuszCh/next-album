@@ -6,13 +6,24 @@
 import { MongoClient, type Collection, type Db } from 'mongodb';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
-/** One document per user; username is the `_id`, so no extra unique index. */
+/**
+ * One document per account. `_id` is the lowercased Last.fm username for a
+ * Last.fm-only account, or `email:<address>` for an email account (Last.fm
+ * usernames can't contain `:`, so the two never collide). Credentials and the
+ * linked Last.fm username exist only on email accounts.
+ */
 export interface UserDoc {
-    _id: string; // username (lowercased)
+    _id: string;
     lastAlbum: AlbumRecommendation | null;
     history: AlbumRecommendation[];
     saved: AlbumRecommendation[];
     updatedAt: Date;
+    email?: string;
+    passwordHash?: string;
+    // Last.fm account linked to an email account (original casing).
+    lastfmUsername?: string;
+    lastfmKey?: string; // lowercased lastfmUsername — unique across accounts
+    createdAt?: Date;
 }
 
 // Read env lazily (like getApiKey / getSessionPassword) so a missing var throws a
@@ -50,7 +61,28 @@ async function getDb(): Promise<Db> {
     return client.db(getDbName());
 }
 
+// One Last.fm account can be linked to at most one email account. Created once
+// per process; a failure is retried on the next call.
+let indexesPromise: Promise<unknown> | null = null;
+
+function ensureIndexes(users: Collection<UserDoc>): Promise<unknown> {
+    if (!indexesPromise) {
+        indexesPromise = users
+            .createIndex(
+                { lastfmKey: 1 },
+                { unique: true, partialFilterExpression: { lastfmKey: { $type: 'string' } } },
+            )
+            .catch((err) => {
+                indexesPromise = null;
+                throw err;
+            });
+    }
+    return indexesPromise;
+}
+
 export async function getUsersCollection(): Promise<Collection<UserDoc>> {
     const db = await getDb();
-    return db.collection<UserDoc>('users');
+    const users = db.collection<UserDoc>('users');
+    await ensureIndexes(users);
+    return users;
 }
