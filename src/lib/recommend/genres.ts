@@ -1,32 +1,53 @@
-// Curated list of genres offered in "By genre" mode. `tag` is the exact Last.fm
-// tag used for tag.getTopAlbums / tag.getTopArtists; `label` is what the UI
-// shows. Keeping a fixed list (rather than Last.fm's noisy top tags) gives a
-// clean, predictable picker; personalization just highlights entries from it.
+// Curated list of genres offered in the album search. `tag` is the stable id
+// (sent by the client and kept in localStorage); `label` is what the UI shows.
+// `discogs` lists the Discogs genre/style queries the genre maps to — Discogs
+// search takes one genre and one style per query, so a roll picks one variant
+// at random (e.g. metal → Heavy Metal / Thrash / Death Metal / …).
+
+export interface DiscogsGenreQuery {
+    genre?: string;
+    style?: string;
+}
 
 export interface Genre {
     tag: string;
     label: string;
+    discogs: DiscogsGenreQuery[];
 }
 
 export const GENRES: Genre[] = [
-    { tag: 'rock', label: 'Rock' },
-    { tag: 'pop', label: 'Pop' },
-    { tag: 'hip-hop', label: 'Hip-Hop' },
-    { tag: 'electronic', label: 'Electronic' },
-    { tag: 'indie', label: 'Indie' },
-    { tag: 'metal', label: 'Metal' },
-    { tag: 'jazz', label: 'Jazz' },
-    { tag: 'classical', label: 'Classical' },
-    { tag: 'rnb', label: 'R&B' },
-    { tag: 'punk', label: 'Punk' },
-    { tag: 'folk', label: 'Folk' },
-    { tag: 'soul', label: 'Soul' },
-    { tag: 'ambient', label: 'Ambient' },
-    { tag: 'house', label: 'House' },
-    { tag: 'techno', label: 'Techno' },
-    { tag: 'country', label: 'Country' },
-    { tag: 'blues', label: 'Blues' },
-    { tag: 'reggae', label: 'Reggae' },
+    { tag: 'rock', label: 'Rock', discogs: [{ genre: 'Rock' }] },
+    { tag: 'pop', label: 'Pop', discogs: [{ genre: 'Pop' }] },
+    { tag: 'hip-hop', label: 'Rap', discogs: [{ genre: 'Hip Hop' }] },
+    { tag: 'electronic', label: 'Electronic', discogs: [{ genre: 'Electronic' }] },
+    { tag: 'indie', label: 'Indie', discogs: [{ style: 'Indie Rock' }, { style: 'Indie Pop' }] },
+    {
+        tag: 'metal',
+        label: 'Metal',
+        discogs: [
+            { style: 'Heavy Metal' },
+            { style: 'Thrash' },
+            { style: 'Death Metal' },
+            { style: 'Black Metal' },
+            { style: 'Doom Metal' },
+        ],
+    },
+    { tag: 'jazz', label: 'Jazz', discogs: [{ genre: 'Jazz' }] },
+    { tag: 'classical', label: 'Classical', discogs: [{ genre: 'Classical' }] },
+    {
+        tag: 'rnb',
+        label: 'R&B',
+        discogs: [{ style: 'Rhythm & Blues' }, { style: 'Contemporary R&B' }],
+    },
+    { tag: 'punk', label: 'Punk', discogs: [{ style: 'Punk' }] },
+    { tag: 'folk', label: 'Folk', discogs: [{ genre: 'Folk, World, & Country' }] },
+    { tag: 'soul', label: 'Soul', discogs: [{ genre: 'Funk / Soul' }] },
+    { tag: 'ambient', label: 'Ambient', discogs: [{ style: 'Ambient' }] },
+    { tag: 'house', label: 'House', discogs: [{ style: 'House' }] },
+    { tag: 'techno', label: 'Techno', discogs: [{ style: 'Techno' }] },
+    { tag: 'country', label: 'Country', discogs: [{ style: 'Country' }] },
+    { tag: 'blues', label: 'Blues', discogs: [{ genre: 'Blues' }] },
+    { tag: 'reggae', label: 'Reggae', discogs: [{ genre: 'Reggae' }] },
 ];
 
 const GENRE_BY_TAG = new Map(GENRES.map((g) => [g.tag.toLowerCase(), g]));

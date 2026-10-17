@@ -12,8 +12,8 @@ import { LanguageToggle } from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { errorMessage } from '@/lib/i18n';
 import { GENRES } from '@/lib/recommend/genres';
-import { MOODS } from '@/lib/recommend/moods';
 import { DECADES } from '@/lib/recommend/decades';
+import { COUNTRIES } from '@/lib/recommend/countries';
 import {
     albumKey,
     fetchUserData,
@@ -32,9 +32,15 @@ interface Me {
     gateEnabled?: boolean;
 }
 
-type TagDimension = 'genre' | 'mood' | 'decade';
+// `lastfm`: picks from the user's Last.fm profile (slider, no filters).
+// `search`: Discogs album search by filters — no Last.fm account needed.
+type AppMode = 'lastfm' | 'search';
 
-const DIMENSIONS: TagDimension[] = ['genre', 'mood', 'decade'];
+const APP_MODES: AppMode[] = ['lastfm', 'search'];
+
+type TagDimension = 'genre' | 'decade' | 'country';
+
+const DIMENSIONS: TagDimension[] = ['genre', 'decade', 'country'];
 
 // Picker config per tag dimension — the curated list and its placeholder key.
 // `labelKey` (when set) builds an i18n key per item (`<labelKey>.<tag>`) so the
@@ -44,32 +50,35 @@ const PICKERS: Record<
     { items: { tag: string; label: string }[]; placeholder: string; labelKey?: string }
 > = {
     genre: { items: GENRES, placeholder: 'genre.placeholder' },
-    mood: { items: MOODS, placeholder: 'mood.placeholder', labelKey: 'mood' },
     decade: { items: DECADES, placeholder: 'decade.placeholder' },
+    country: { items: COUNTRIES, placeholder: 'country.placeholder', labelKey: 'country' },
 };
 
 type Filters = Record<TagDimension, string[]>;
 
-// Read a stored filter list, tolerating the legacy single-value string format.
-function readStoredTags(key: string): string[] {
-    const raw = window.localStorage.getItem(key);
+const NO_FILTERS: Filters = { genre: [], decade: [], country: [] };
+
+// Read a stored filter list, tolerating the legacy single-value string format
+// and dropping tags no longer offered (e.g. removed countries).
+function readStoredTags(dimension: TagDimension): string[] {
+    const raw = window.localStorage.getItem(dimension);
     if (!raw) return [];
+    let tags = [raw]; // legacy value was a bare tag string
     try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string');
+        if (Array.isArray(parsed)) tags = parsed.filter((x): x is string => typeof x === 'string');
     } catch {
-        // legacy value was a bare tag string
+        // keep the bare string
     }
-    return [raw];
+    return tags.filter((tag) => PICKERS[dimension].items.some((item) => item.tag === tag));
 }
 
 export default function Home() {
     const { t } = useI18n();
     const [me, setMe] = useState<Me | null>(null);
+    const [mode, setMode] = useState<AppMode>('lastfm');
     const [discovery, setDiscovery] = useState(0.5);
-    const [filters, setFilters] = useState<Filters>({ genre: [], mood: [], decade: [] });
-    const [now, setNow] = useState(false);
-    const [filtersOpen, setFiltersOpen] = useState(false);
+    const [filters, setFilters] = useState<Filters>(NO_FILTERS);
     const [album, setAlbum] = useState<AlbumRecommendation | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -79,11 +88,23 @@ export default function Home() {
     // longer matches is ignored so it can't overwrite a newer album.
     const rollId = useRef(0);
 
+    const loggedIn = me?.loggedIn ?? false;
+
     useEffect(() => {
         fetch('/api/me')
             .then((r) => r.json())
             .then((data: Me) => {
                 setMe(data);
+                // A remembered mode wins; otherwise logged-in users start in the
+                // Last.fm mode and everyone else in the search (no account needed).
+                const storedMode = window.localStorage.getItem('appMode') as AppMode | null;
+                setMode(
+                    storedMode && APP_MODES.includes(storedMode)
+                        ? storedMode
+                        : data.loggedIn
+                          ? 'lastfm'
+                          : 'search',
+                );
                 // Load the user's stored data (last album, history, saved) from the
                 // DB only once we know they're logged in.
                 if (data.loggedIn) {
@@ -94,7 +115,10 @@ export default function Home() {
                     });
                 }
             })
-            .catch(() => setMe({ loggedIn: false }));
+            .catch(() => {
+                setMe({ loggedIn: false });
+                setMode('search');
+            });
 
         const stored = window.localStorage.getItem('discovery');
         if (stored !== null) {
@@ -104,11 +128,9 @@ export default function Home() {
 
         setFilters({
             genre: readStoredTags('genre'),
-            mood: readStoredTags('mood'),
             decade: readStoredTags('decade'),
+            country: readStoredTags('country'),
         });
-        setNow(window.localStorage.getItem('now') === '1');
-        setFiltersOpen(window.localStorage.getItem('filtersOpen') === '1');
 
         const params = new URLSearchParams(window.location.search);
         const err = params.get('error');
@@ -118,6 +140,12 @@ export default function Home() {
             setError(err);
             window.history.replaceState({}, '', window.location.pathname);
         }
+    }, []);
+
+    const handleModeChange = useCallback((next: AppMode) => {
+        setMode(next);
+        setError(null);
+        window.localStorage.setItem('appMode', next);
     }, []);
 
     const handleDiscoveryChange = useCallback((value: number) => {
@@ -130,27 +158,32 @@ export default function Home() {
         setLoading(true);
         setError(null);
         try {
-            const params = new URLSearchParams({ discovery: String(discovery) });
-            filters.genre.forEach((g) => params.append('genre', g));
-            filters.mood.forEach((m) => params.append('mood', m));
-            filters.decade.forEach((d) => params.append('decade', d));
-            if (now) params.set('now', '1');
-            const res = await fetch(`/api/recommend?${params.toString()}`);
+            let url: string;
+            if (mode === 'lastfm') {
+                url = `/api/recommend?${new URLSearchParams({ discovery: String(discovery) })}`;
+            } else {
+                const params = new URLSearchParams();
+                DIMENSIONS.forEach((dim) => filters[dim].forEach((tag) => params.append(dim, tag)));
+                url = `/api/search?${params}`;
+            }
+            const res = await fetch(url);
             const data = await res.json();
             // A newer roll superseded this one — ignore the stale response.
             if (id !== rollId.current) return;
             // On error `data.error` is a code; store it and localize at render.
             if (!res.ok) throw new Error(data.error ?? 'generic');
             setAlbum(data as AlbumRecommendation);
-            const nextHistory = await pushHistory(data as AlbumRecommendation);
-            if (nextHistory) setHistory(nextHistory);
+            if (loggedIn) {
+                const nextHistory = await pushHistory(data as AlbumRecommendation);
+                if (nextHistory) setHistory(nextHistory);
+            }
         } catch (e) {
             if (id !== rollId.current) return;
             setError(e instanceof Error ? e.message : 'generic');
         } finally {
             if (id === rollId.current) setLoading(false);
         }
-    }, [discovery, filters, now]);
+    }, [mode, discovery, filters, loggedIn]);
 
     const handleToggleTag = useCallback((dimension: TagDimension, tag: string) => {
         setFilters((f) => {
@@ -163,29 +196,9 @@ export default function Home() {
         });
     }, []);
 
-    const handleToggleFilters = useCallback(() => {
-        setFiltersOpen((o) => {
-            const next = !o;
-            window.localStorage.setItem('filtersOpen', next ? '1' : '0');
-            return next;
-        });
-    }, []);
-
     const handleResetFilters = useCallback(() => {
-        setFilters({ genre: [], mood: [], decade: [] });
-        setNow(false);
-        window.localStorage.removeItem('genre');
-        window.localStorage.removeItem('mood');
-        window.localStorage.removeItem('decade');
-        window.localStorage.removeItem('now');
-    }, []);
-
-    const handleToggleNow = useCallback(() => {
-        setNow((n) => {
-            const next = !n;
-            window.localStorage.setItem('now', next ? '1' : '0');
-            return next;
-        });
+        setFilters(NO_FILTERS);
+        DIMENSIONS.forEach((dim) => window.localStorage.removeItem(dim));
     }, []);
 
     const showAlbum = useCallback((picked: AlbumRecommendation) => {
@@ -230,7 +243,7 @@ export default function Home() {
         window.location.href = '/';
     }, []);
 
-    // Translate a picker's labels when the dimension opts in (moods).
+    // Translate a picker's labels when the dimension opts in (countries).
     const pickerItems = useCallback(
         (dimension: TagDimension) => {
             const cfg = PICKERS[dimension];
@@ -241,8 +254,10 @@ export default function Home() {
         [t],
     );
 
-    const activeFilterCount =
-        filters.genre.length + filters.mood.length + filters.decade.length + (now ? 1 : 0);
+    const activeFilterCount = DIMENSIONS.reduce((n, dim) => n + filters[dim].length, 0);
+
+    // The Last.fm mode needs an account; logged out it shows the login screen.
+    const showLogin = mode === 'lastfm' && !loggedIn;
 
     return (
         <main className="page">
@@ -275,126 +290,124 @@ export default function Home() {
             <div className="container">
                 {me === null ? (
                     <p className="subtitle">{t('loading')}</p>
-                ) : !me.loggedIn ? (
-                    <div className="hero">
-                        <span className="hero-mark">
-                            <LogoMark />
-                        </span>
-                        <h1 className="title">{t('loggedOut.title')}</h1>
-                        <p className="subtitle">{t('loggedOut.subtitle')}</p>
-                        <LoginButton />
-                        {error && <div className="error">{errorMessage(t, error)}</div>}
-                    </div>
                 ) : (
                     <>
-                        <h1 className="title">{t('loggedIn.title', { username: me.username ?? '' })}</h1>
-                        <p className="subtitle">{t('loggedIn.subtitle')}</p>
-
-                        <div className="controls">
-                            <ModeSlider
-                                value={discovery}
-                                onChange={handleDiscoveryChange}
-                                disabled={loading}
-                            />
-
-                            <div className="filters-header">
+                        <div className="mode-tabs" role="tablist" aria-label={t('mode.aria')}>
+                            {APP_MODES.map((m) => (
                                 <button
-                                    type="button"
-                                    className="filters-toggle"
-                                    onClick={handleToggleFilters}
-                                    aria-expanded={filtersOpen}
-                                    aria-controls="filters-panel"
+                                    key={m}
+                                    role="tab"
+                                    aria-selected={mode === m}
+                                    className={mode === m ? 'active' : ''}
+                                    onClick={() => handleModeChange(m)}
+                                    disabled={loading}
                                 >
-                                    <span>
-                                        {t(filtersOpen ? 'filter.hide' : 'filter.show')}
-                                        {activeFilterCount > 0 && (
-                                            <span className="filters-badge">{activeFilterCount}</span>
-                                        )}
-                                    </span>
-                                    <svg
-                                        className={`filters-chevron${filtersOpen ? ' open' : ''}`}
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        aria-hidden
-                                    >
-                                        <path
-                                            d="M6 9l6 6 6-6"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                        />
-                                    </svg>
+                                    {t(`mode.${m}`)}
                                 </button>
-                                {activeFilterCount > 0 && (
-                                    <button
-                                        type="button"
-                                        className="filters-reset"
-                                        onClick={handleResetFilters}
-                                        disabled={loading}
-                                    >
-                                        {t('filter.reset')}
-                                    </button>
-                                )}
-                            </div>
-
-                            {filtersOpen && (
-                            <div className="filters" id="filters-panel">
-                                {DIMENSIONS.map((dim) => (
-                                    <div className="filter-group" key={dim}>
-                                        <span className="filter-label">{t(`filter.${dim}`)}</span>
-                                        <GenrePicker
-                                            items={pickerItems(dim)}
-                                            selected={filters[dim]}
-                                            placeholder={t(PICKERS[dim].placeholder)}
-                                            onToggle={(tag) => handleToggleTag(dim, tag)}
-                                            disabled={loading}
-                                        />
-                                    </div>
-                                ))}
-
-                                <div className="filter-group filter-now">
-                                    <button
-                                        type="button"
-                                        className={`genre-chip now-chip${now ? ' selected' : ''}`}
-                                        aria-pressed={now}
-                                        onClick={handleToggleNow}
-                                        disabled={loading}
-                                        title={t('filter.now.hint')}
-                                    >
-                                        {t('filter.now')}
-                                    </button>
-                                </div>
-                            </div>
-                            )}
-
-                            <button
-                                className="btn btn-primary btn-big"
-                                onClick={() => roll()}
-                                disabled={loading}
-                            >
-                                {loading ? t('btn.rolling') : t('btn.next')}
-                            </button>
+                            ))}
                         </div>
 
-                        {error && <div className="error">{errorMessage(t, error)}</div>}
-                        {album && (
-                            <AlbumCard
-                                key={albumKey(album)}
-                                album={album}
-                                saved={isSaved(saved, album)}
-                                onToggleSave={() => toggleSave(album)}
-                            />
-                        )}
-                        {!album && !error && <p className="hint">{t('hint.default')}</p>}
+                        {showLogin ? (
+                            <div className="hero">
+                                <span className="hero-mark">
+                                    <LogoMark />
+                                </span>
+                                <h1 className="title">{t('loggedOut.title')}</h1>
+                                <p className="subtitle">{t('loggedOut.subtitle')}</p>
+                                <LoginButton />
+                                {error && <div className="error">{errorMessage(t, error)}</div>}
+                            </div>
+                        ) : (
+                            <>
+                                {mode === 'lastfm' ? (
+                                    <>
+                                        <h1 className="title">
+                                            {t('loggedIn.title', { username: me.username ?? '' })}
+                                        </h1>
+                                        <p className="subtitle">{t('loggedIn.subtitle')}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h1 className="title">{t('search.title')}</h1>
+                                        <p className="subtitle">{t('search.subtitle')}</p>
+                                    </>
+                                )}
 
-                        <HistoryPanel
-                            history={history}
-                            saved={saved}
-                            onPick={showAlbum}
-                            onToggleSave={toggleSave}
-                            onRemoveSaved={removeSaved}
-                        />
+                                <div className="controls">
+                                    {mode === 'lastfm' ? (
+                                        <ModeSlider
+                                            value={discovery}
+                                            onChange={handleDiscoveryChange}
+                                            disabled={loading}
+                                        />
+                                    ) : (
+                                        <div className="filters">
+                                            {DIMENSIONS.map((dim) => (
+                                                <div className="filter-group" key={dim}>
+                                                    <span className="filter-label">
+                                                        {t(`filter.${dim}`)}
+                                                    </span>
+                                                    <GenrePicker
+                                                        items={pickerItems(dim)}
+                                                        selected={filters[dim]}
+                                                        placeholder={t(PICKERS[dim].placeholder)}
+                                                        onToggle={(tag) =>
+                                                            handleToggleTag(dim, tag)
+                                                        }
+                                                        disabled={loading}
+                                                    />
+                                                </div>
+                                            ))}
+                                            {activeFilterCount > 0 && (
+                                                <button
+                                                    type="button"
+                                                    className="filters-reset"
+                                                    onClick={handleResetFilters}
+                                                    disabled={loading}
+                                                >
+                                                    {t('filter.reset')}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <button
+                                        className="btn btn-primary btn-big"
+                                        onClick={() => roll()}
+                                        disabled={loading}
+                                    >
+                                        {loading ? t('btn.rolling') : t('btn.next')}
+                                    </button>
+                                </div>
+
+                                {error && <div className="error">{errorMessage(t, error)}</div>}
+                                {album && (
+                                    <AlbumCard
+                                        key={albumKey(album)}
+                                        album={album}
+                                        saved={isSaved(saved, album)}
+                                        onToggleSave={
+                                            loggedIn ? () => toggleSave(album) : undefined
+                                        }
+                                    />
+                                )}
+                                {!album && !error && (
+                                    <p className="hint">
+                                        {t(mode === 'lastfm' ? 'hint.default' : 'hint.search')}
+                                    </p>
+                                )}
+
+                                {loggedIn && (
+                                    <HistoryPanel
+                                        history={history}
+                                        saved={saved}
+                                        onPick={showAlbum}
+                                        onToggleSave={toggleSave}
+                                        onRemoveSaved={removeSaved}
+                                    />
+                                )}
+                            </>
+                        )}
                     </>
                 )}
             </div>
@@ -402,6 +415,9 @@ export default function Home() {
             <footer className="footer">
                 <a href="https://www.last.fm/" target="_blank" rel="noreferrer">
                     {t('footer.poweredBy')}
+                </a>
+                <a href="https://www.discogs.com/" target="_blank" rel="noreferrer">
+                    {t('footer.discogs')}
                 </a>
             </footer>
         </main>

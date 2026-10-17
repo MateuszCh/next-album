@@ -24,13 +24,6 @@ export interface LastfmTopArtist {
     image: LastfmImage[];
 }
 
-export interface LastfmWeeklyArtist {
-    name: string;
-    playcount: string;
-    mbid?: string;
-    url: string;
-}
-
 export interface LastfmSimilarArtist {
     name: string;
     mbid?: string;
@@ -48,36 +41,25 @@ export interface LastfmArtistAlbum {
     image: LastfmImage[];
 }
 
-export interface LastfmTagAlbum {
-    name: string;
-    mbid?: string;
-    url: string;
-    artist: { name: string; mbid?: string; url: string };
-    image: LastfmImage[];
-}
-
-export interface LastfmTagArtist {
-    name: string;
-    mbid?: string;
-    url: string;
-    image: LastfmImage[];
-}
-
 export interface LastfmRecentTrack {
     name: string;
     artist: { '#text': string; mbid?: string };
     album: { '#text': string; mbid?: string };
 }
 
-// Normalized album returned by the recommendation engine to the front-end.
+// Normalized album returned to the front-end — by the Last.fm recommendation
+// engine (`rediscovery` / `discovery`) or the Discogs album search (`search`).
 export interface AlbumRecommendation {
     name: string;
     artist: string;
     url: string;
     imageUrl: string | null;
-    mode: 'rediscovery' | 'discovery';
+    mode: 'rediscovery' | 'discovery' | 'search';
+    // Where `url` points; absent on albums stored before the search mode (Last.fm).
+    source?: 'lastfm' | 'discogs';
     // Structured so the client can localize it; string accepted for legacy cache.
     reason: AlbumReason | string;
     playcount: number | null;
+    year?: number | null;
     genre?: string;
 }

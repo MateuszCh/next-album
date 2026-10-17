@@ -3,8 +3,8 @@
 // preferences (theme, discovery, …).
 
 import { getGenre } from '@/lib/recommend/genres';
-import { getMood } from '@/lib/recommend/moods';
 import { getDecade } from '@/lib/recommend/decades';
+import { getCountry } from '@/lib/recommend/countries';
 
 export type Lang = 'pl' | 'en';
 
@@ -17,9 +17,11 @@ export type TranslateParams = Record<string, string | number>;
 export type AlbumReason =
     | { kind: 'rediscovery'; playcount: number }
     | { kind: 'discovery'; seedName: string }
+    // Album search (Discogs): the drawn filter tags + how many Discogs users own it.
+    | { kind: 'search'; filters: string[]; have: number }
+    // Legacy kinds kept so albums saved in history before still render.
     | { kind: 'rediscovery_filtered'; filters: string[]; now: boolean; playcount: number }
     | { kind: 'discovery_filtered'; filters: string[]; now: boolean; seedName?: string }
-    // Legacy kinds kept so albums saved before the unified filters still render.
     | { kind: 'rediscovery_genre'; genre: string; playcount: number }
     | { kind: 'discovery_genre'; genre: string }
     | { kind: 'current_favorite'; playcount: number }
@@ -35,32 +37,37 @@ const en: Dict = {
         "Log in with your Last.fm account and we'll pick a specific album to play — sometimes a favorite classic, sometimes something new from an artist similar to yours.",
     login: 'Log in with Last.fm',
 
+    'mode.aria': 'Mode',
+    'mode.lastfm': 'For me',
+    'mode.search': 'Find an album',
+
     'loggedIn.title': 'Hi, {username}',
     'loggedIn.subtitle':
         'Set the balance and get your next album. The more “discovery”, the more often we suggest something new beyond your history.',
 
+    'search.title': 'Find an album',
+    'search.subtitle':
+        'Pick a genre, decade and country — we’ll draw a well-loved album from Discogs. No Last.fm account needed.',
+
     'filter.toggle': 'Filters',
-    'filter.show': 'Show filters',
-    'filter.hide': 'Hide filters',
     'filter.reset': 'Clear',
     'filter.genre': 'Genre',
-    'filter.mood': 'Mood',
     'filter.decade': 'Decade',
-    'filter.now': 'Right now',
-    'filter.now.hint': 'Only artists you’re into this week',
+    'filter.country': 'Country',
     'filter.selected': '{count} selected',
     'genre.placeholder': 'Any genre',
-    'mood.placeholder': 'Any mood',
     'decade.placeholder': 'Any decade',
+    'country.placeholder': 'Any country',
 
-    'mood.chillout': 'Chill',
-    'mood.energetic': 'Energetic',
-    'mood.melancholy': 'Melancholic',
-    'mood.happy': 'Happy',
-    'mood.party': 'Party',
-    'mood.romantic': 'Romantic',
-    'mood.aggressive': 'Aggressive',
-    'mood.dreamy': 'Dreamy',
+    'country.british': 'United Kingdom',
+    'country.american': 'United States',
+    'country.polish': 'Poland',
+    'country.german': 'Germany',
+    'country.french': 'France',
+    'country.japanese': 'Japan',
+    'country.brazilian': 'Brazil',
+    'country.italian': 'Italy',
+    'country.spanish': 'Spain',
 
     'slider.favorites': 'Favorites',
     'slider.discovery': 'Discovery',
@@ -71,10 +78,12 @@ const en: Dict = {
     'btn.lock': 'Lock',
     'btn.logout': 'Log out',
 
-    'hint.default': 'Set the filters (or leave them empty) and click “Next Album”.',
+    'hint.default': 'Set the balance and click “Next Album”.',
+    'hint.search': 'Set the filters (or leave them empty) and click “Next Album”.',
 
     'card.discovery': 'Discovery',
     'card.favorites': 'From favorites',
+    'card.search': 'Search',
     'card.coverAlt': 'Cover: {name}',
     'card.save': 'Save album',
     'card.unsave': 'Remove from saved',
@@ -95,12 +104,15 @@ const en: Dict = {
     'reason.discovery_genre': 'Something new in {genre}.',
     'reason.current_favorite': 'From what you’re into this week — played {playcount}×.',
     'reason.current_discovery': 'Fresh pick from “{seed}”, who you’re spinning this week.',
+    'reason.search': 'Matches {scope} — in {have} Discogs collections.',
+    'reason.search_noscope': 'Popular on Discogs — in {have} collections.',
 
     'theme.toLight': 'Switch to light theme',
     'theme.toDark': 'Switch to dark theme',
     'lang.aria': 'Language',
 
     'footer.poweredBy': 'Powered by AudioScrobbler / Last.fm',
+    'footer.discogs': 'Album search data provided by Discogs',
 
     'gate.title': 'Access restricted',
     'gate.subtitle':
@@ -132,32 +144,37 @@ const pl: Dict = {
         'Zaloguj się kontem Last.fm, a my wybierzemy konkretny album do odsłuchania — czasem ulubiony klasyk, czasem coś nowego od artysty podobnego do Twoich.',
     login: 'Zaloguj przez Last.fm',
 
+    'mode.aria': 'Tryb',
+    'mode.lastfm': 'Dla mnie',
+    'mode.search': 'Szukaj albumu',
+
     'loggedIn.title': 'Cześć, {username}',
     'loggedIn.subtitle':
         'Ustaw balans i odbierz kolejny album. Im więcej „odkrywania”, tym częściej proponujemy coś nowego spoza Twojej historii.',
 
+    'search.title': 'Szukaj albumu',
+    'search.subtitle':
+        'Wybierz gatunek, dekadę i kraj — wylosujemy lubiany album z Discogs. Konto Last.fm nie jest potrzebne.',
+
     'filter.toggle': 'Filtry',
-    'filter.show': 'Pokaż filtry',
-    'filter.hide': 'Ukryj filtry',
     'filter.reset': 'Wyczyść',
     'filter.genre': 'Gatunek',
-    'filter.mood': 'Nastrój',
     'filter.decade': 'Dekada',
-    'filter.now': 'Teraz',
-    'filter.now.hint': 'Tylko artyści, których słuchasz w tym tygodniu',
+    'filter.country': 'Kraj',
     'filter.selected': 'wybrano: {count}',
     'genre.placeholder': 'Dowolny gatunek',
-    'mood.placeholder': 'Dowolny nastrój',
     'decade.placeholder': 'Dowolna dekada',
+    'country.placeholder': 'Dowolny kraj',
 
-    'mood.chillout': 'Spokojny',
-    'mood.energetic': 'Energiczny',
-    'mood.melancholy': 'Melancholijny',
-    'mood.happy': 'Radosny',
-    'mood.party': 'Imprezowy',
-    'mood.romantic': 'Romantyczny',
-    'mood.aggressive': 'Agresywny',
-    'mood.dreamy': 'Marzycielski',
+    'country.british': 'Wielka Brytania',
+    'country.american': 'USA',
+    'country.polish': 'Polska',
+    'country.german': 'Niemcy',
+    'country.french': 'Francja',
+    'country.japanese': 'Japonia',
+    'country.brazilian': 'Brazylia',
+    'country.italian': 'Włochy',
+    'country.spanish': 'Hiszpania',
 
     'slider.favorites': 'Ulubione',
     'slider.discovery': 'Odkrywanie',
@@ -168,10 +185,12 @@ const pl: Dict = {
     'btn.lock': 'Zablokuj',
     'btn.logout': 'Wyloguj',
 
-    'hint.default': 'Ustaw filtry (lub zostaw puste) i kliknij „Następny album”.',
+    'hint.default': 'Ustaw balans i kliknij „Następny album”.',
+    'hint.search': 'Ustaw filtry (lub zostaw puste) i kliknij „Następny album”.',
 
     'card.discovery': 'Odkrycie',
     'card.favorites': 'Z ulubionych',
+    'card.search': 'Wyszukiwanie',
     'card.coverAlt': 'Okładka: {name}',
     'card.save': 'Zapisz album',
     'card.unsave': 'Usuń z zapisanych',
@@ -192,12 +211,15 @@ const pl: Dict = {
     'reason.discovery_genre': 'Coś nowego w {genre}.',
     'reason.current_favorite': 'Z tego, czym żyjesz w tym tygodniu — odtworzono {playcount}×.',
     'reason.current_discovery': 'Świeży typ od „{seed}”, którego słuchasz w tym tygodniu.',
+    'reason.search': 'Pasuje do: {scope} — w kolekcjach {have} osób na Discogs.',
+    'reason.search_noscope': 'Popularny na Discogs — w kolekcjach {have} osób.',
 
     'theme.toLight': 'Przełącz na jasny motyw',
     'theme.toDark': 'Przełącz na ciemny motyw',
     'lang.aria': 'Język',
 
     'footer.poweredBy': 'Napędzane przez AudioScrobbler / Last.fm',
+    'footer.discogs': 'Dane wyszukiwania albumów dostarcza Discogs',
 
     'gate.title': 'Dostęp ograniczony',
     'gate.subtitle':
@@ -237,9 +259,12 @@ export function detectLang(): Lang {
 
 export type TFn = (key: string, params?: TranslateParams) => string;
 
-/** Localized label for a filter tag (mood is translated, genre/decade are names). */
+/**
+ * Localized label for a filter tag (countries are translated, genres/decades are
+ * names). Tags no longer offered (e.g. moods in old history) show as is.
+ */
 function tagLabel(t: TFn, tag: string): string {
-    if (getMood(tag)) return t(`mood.${tag}`);
+    if (getCountry(tag)) return t(`country.${tag}`);
     return getGenre(tag)?.label ?? getDecade(tag)?.label ?? tag;
 }
 
@@ -269,6 +294,12 @@ export function formatReason(t: TFn, reason: AlbumReason | string): string {
             return reason.seedName
                 ? t('reason.discovery_filtered', { scope, seed: reason.seedName })
                 : t('reason.discovery_filtered_noseed', { scope });
+        }
+        case 'search': {
+            const have = reason.have;
+            return reason.filters.length > 0
+                ? t('reason.search', { scope: filterScope(t, reason.filters, false), have })
+                : t('reason.search_noscope', { have });
         }
         case 'rediscovery_genre':
             return t('reason.rediscovery_genre', {
