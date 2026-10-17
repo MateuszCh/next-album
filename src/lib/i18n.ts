@@ -49,12 +49,10 @@ const en: Dict = {
     'search.subtitle':
         'Pick a genre, decade and country — we’ll draw a well-loved album from Discogs. No Last.fm account needed.',
 
-    'filter.toggle': 'Filters',
     'filter.reset': 'Clear',
     'filter.genre': 'Genre',
     'filter.decade': 'Decade',
     'filter.country': 'Country',
-    'filter.selected': '{count} selected',
     'genre.placeholder': 'Any genre',
     'decade.placeholder': 'Any decade',
     'country.placeholder': 'Any country',
@@ -90,8 +88,6 @@ const en: Dict = {
 
     'history.title': 'Recent',
     'history.saved': 'Saved',
-    'history.emptyHistory': 'Albums you roll will show up here.',
-    'history.emptySaved': 'Save an album with the star to keep it here.',
     'history.remove': 'Remove',
 
     'reason.rediscovery': 'From your favorites — played {playcount}×.',
@@ -128,7 +124,6 @@ const en: Dict = {
     'error.auth_failed': 'Last.fm login failed. Please try again.',
     'error.missing_token': 'Missing authorization token. Please try logging in again.',
     'error.not_logged_in': 'You are not logged in.',
-    'error.unknown_genre': 'Unknown genre.',
     'error.no_matches': 'No albums match these filters. Try loosening them.',
     'error.pick_failed': 'Could not pick an album right now. Please try again.',
     'error.wrong_password': 'Wrong password.',
@@ -156,12 +151,10 @@ const pl: Dict = {
     'search.subtitle':
         'Wybierz gatunek, dekadę i kraj — wylosujemy lubiany album z Discogs. Konto Last.fm nie jest potrzebne.',
 
-    'filter.toggle': 'Filtry',
     'filter.reset': 'Wyczyść',
     'filter.genre': 'Gatunek',
     'filter.decade': 'Dekada',
     'filter.country': 'Kraj',
-    'filter.selected': 'wybrano: {count}',
     'genre.placeholder': 'Dowolny gatunek',
     'decade.placeholder': 'Dowolna dekada',
     'country.placeholder': 'Dowolny kraj',
@@ -197,8 +190,6 @@ const pl: Dict = {
 
     'history.title': 'Ostatnie',
     'history.saved': 'Zapisane',
-    'history.emptyHistory': 'Wylosowane albumy pojawią się tutaj.',
-    'history.emptySaved': 'Zapisz album gwiazdką, aby go tu zatrzymać.',
     'history.remove': 'Usuń',
 
     'reason.rediscovery': 'Z Twoich ulubionych — odtworzono {playcount}×.',
@@ -234,7 +225,6 @@ const pl: Dict = {
     'error.auth_failed': 'Logowanie Last.fm nie powiodło się. Spróbuj ponownie.',
     'error.missing_token': 'Brak tokenu autoryzacji. Spróbuj zalogować się ponownie.',
     'error.not_logged_in': 'Nie jesteś zalogowany.',
-    'error.unknown_genre': 'Nieznany gatunek.',
     'error.no_matches': 'Brak albumów pasujących do tych filtrów. Poluzuj je.',
     'error.pick_failed': 'Nie udało się teraz wybrać albumu. Spróbuj ponownie.',
     'error.wrong_password': 'Błędne hasło.',

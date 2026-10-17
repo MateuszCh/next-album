@@ -722,13 +722,6 @@ input[type='range']:disabled {
     font-weight: 600;
 }
 
-.badge-genre {
-    left: auto;
-    right: 0.8rem;
-    background: var(--accent);
-    color: var(--accent-contrast);
-}
-
 .save-btn {
     position: absolute;
     bottom: 0.8rem;

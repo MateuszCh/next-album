@@ -5,6 +5,7 @@
 
 import { cached } from '@/lib/cache';
 import { createRateLimiter } from '@/lib/lastfm/limiter';
+import { getUserAgent, UPSTREAM_TIMEOUT_MS } from '@/lib/userAgent';
 
 const API_ROOT = 'https://api.discogs.com';
 const PAGE_TTL_MS = 60 * 60 * 1000;
@@ -33,15 +34,6 @@ function getDiscogsToken(): string | undefined {
     return process.env.DISCOGS_TOKEN || undefined;
 }
 
-// Discogs requires a User-Agent identifying the app.
-function getUserAgent(): string {
-    const appUrl = process.env.APP_URL;
-    if (!appUrl) {
-        throw new Error('APP_URL is not set (add it to .env.local).');
-    }
-    return `next-album/1.0 +${appUrl}`;
-}
-
 let limiter: ReturnType<typeof createRateLimiter> | null = null;
 
 // Space requests under the limit: 60/min with a token, 25/min without. Created
@@ -58,13 +50,22 @@ function sleep(ms: number): Promise<void> {
 async function discogsGet<T>(path: string, params: Record<string, string>): Promise<T> {
     const url = `${API_ROOT}${path}?${new URLSearchParams(params)}`;
     const headers: Record<string, string> = {
+        // Discogs requires a User-Agent identifying the app.
         'User-Agent': getUserAgent(),
         Accept: 'application/json',
     };
     const token = getDiscogsToken();
     if (token) headers.Authorization = `Discogs token=${token}`;
 
-    const request = () => rateLimited(() => fetch(url, { headers, cache: 'no-store' }));
+    // The timeout starts when the limiter releases the request, not while queued.
+    const request = () =>
+        rateLimited(() =>
+            fetch(url, {
+                headers,
+                cache: 'no-store',
+                signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+            }),
+        );
     let res = await request();
     if (res.status === 429) {
         await sleep(RETRY_DELAY_MS);

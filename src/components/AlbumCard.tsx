@@ -79,7 +79,6 @@ export function AlbumCard({
                     </div>
                 )}
                 <span className="badge">{t(MODE_BADGE[album.mode])}</span>
-                {album.genre && <span className="badge badge-genre">{album.genre}</span>}
                 {onToggleSave && (
                     <button
                         type="button"

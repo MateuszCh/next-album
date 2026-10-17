@@ -61,5 +61,4 @@ export interface AlbumRecommendation {
     reason: AlbumReason | string;
     playcount: number | null;
     year?: number | null;
-    genre?: string;
 }

@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionFromCookies } from '@/lib/session';
 import { recommend } from '@/lib/recommend/engine';
+import { getUserData } from '@/lib/userData';
+import type { AlbumRecommendation } from '@/lib/lastfm/types';
+
+// An unreachable database would otherwise stall every roll for the driver's
+// 30 s server-selection timeout.
+const HISTORY_TIMEOUT_MS = 1500;
+
+/**
+ * The user's stored roll history, so recent picks don't come back. Optional: a
+ * missing, slow or unreachable database just means no exclusion.
+ */
+function recentRolls(username: string): Promise<AlbumRecommendation[]> {
+    const timeout = new Promise<AlbumRecommendation[]>((resolve) =>
+        setTimeout(() => resolve([]), HISTORY_TIMEOUT_MS),
+    );
+    const history = getUserData(username)
+        .then((d) => d.history)
+        .catch(() => []);
+    return Promise.race([history, timeout]);
+}
 
 /**
  * Last.fm mode: an album from the logged-in user's profile. The only input is
@@ -17,7 +37,10 @@ export async function GET(req: NextRequest) {
     const discovery = discoveryParam !== null ? Number(discoveryParam) : 0.4;
 
     try {
-        const album = await recommend(session.username, { discovery });
+        const album = await recommend(session.username, {
+            discovery,
+            recentRolls: await recentRolls(session.username),
+        });
         return NextResponse.json(album);
     } catch (err) {
         // Logged and returned generically so we don't leak internals (env var

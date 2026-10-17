@@ -88,8 +88,9 @@ localStorage `appMode`):
 - **Find an album** (`search`) — a random well-loved album from **Discogs** for
   genre / decade / country filters. No slider and **no Last.fm login needed**.
 
-**All Last.fm communication, request signing, and the session key are
-server-only** — the `shared_secret` and session key never reach the browser.
+**All Last.fm communication and request signing are server-only** — the
+`shared_secret` never reaches the browser, and the Last.fm session key isn't
+kept at all (every call the app makes is an unsigned public read).
 Import alias: `@/*` → `src/*`.
 
 ### Request flow
@@ -109,20 +110,35 @@ Import alias: `@/*` → `src/*`.
 
 ### Recommendation engine — For me (`src/lib/recommend/engine.ts`)
 
-One entry point, `recommend(username, { discovery })`. Every roll is a coin flip:
+One entry point, `recommend(username, { discovery, recentRolls })`. Every roll is a coin flip:
 `Math.random() < discovery` picks **discovery** vs **favorites** (rediscovery)
 for that roll; if the chosen mode yields nothing it falls back to the other.
-`weightedPick` (`weighted.ts`) is the shared weighted-random primitive. The
-user's profile (top albums/artists + recent tracks) is fetched once and cached
-1h per username via `loadProfile`.
+`weightedPick` (`weighted.ts`) is the shared weighted-random primitive. User data
+is fetched lazily per mode and cached per username: `loadLibrary` (24h — the
+whole artist library with playcounts, paginated 1000/page; its top 200 are the
+seeds), `loadProfile` (1h — top 500 albums of all time with duplicate editions
+merged, plus the albums played in the last 3 months) and `loadRecentAlbumKeys`
+(5 min — last 25 scrobbles). The route passes the stored roll history
+(`recentRolls`, read with a 1.5 s cap) so recent picks are never repeated.
 
 - **Favorites/rediscovery** (`recommendFavorites`) — weighted-random album from
-  the user's top albums (weighted by playcount), skipping albums in their last 25
-  recent tracks.
-- **Discovery** (`discoverFromSeeds`) — weighted-random seed from top artists →
-  Last.fm similar artists → drop artists the user already listens to →
-  weighted-random top album of the picked artist. Retries up to 5 seeds if
-  similar artists are empty/known.
+  the user's top albums (weighted by summed playcount) that is out of rotation:
+  not played in the last 3 months or last 25 scrobbles, not recently rolled.
+  When every favorite is in rotation it returns null (→ discovery).
+- **Discovery** (`discoverFromSeeds`) — seed from top artists weighted by
+  √playcount → Last.fm similar artists → drop known artists (`KNOWN_MIN_PLAYS`
+  = 20+ plays; a collaboration counts by its most played part) →
+  weighted-random top album of the picked artist, skipping recent rolls. For a
+  "sampled" artist (1–19 plays) `pickUnplayedAlbum` checks the user's own
+  `userplaycount` (`getUserAlbumPlaycount`, `album.getInfo` with `username`)
+  and skips albums already played. Never falls back to known artists; retries
+  up to 5 seeds.
+
+Album and artist identity goes through `src/lib/identity.ts` (`albumKey`,
+`artistKey`, `artistKeys`): case, diacritics (incl. `ł`), punctuation, a leading
+"The" and edition suffixes ("(2011 Remastered Version)", "Deluxe Edition") are
+folded, so Last.fm's duplicate entries of one album compare equal. The same key
+dedups history/saved on the server and the client.
 
 ### Album search — Find an album (`src/lib/search.ts`, `src/lib/discogs.ts`)
 
@@ -192,7 +208,10 @@ Edge middleware does not.
 - Every request goes through `rateLimited` (`limiter.ts`, built with the shared
   `createRateLimiter` factory), a global FIFO queue enforcing ~250ms spacing
   (single server IP shares Last.fm's ~5 req/s limit), plus retry-with-backoff on
-  rate-limit (error 29 / HTTP 429).
+  rate-limit and transient errors (codes 29, 8, 11, 16, HTTP 5xx).
+- Every upstream fetch (Last.fm, Discogs, CAA) has an `AbortSignal.timeout` and
+  the shared `getUserAgent()` from `src/lib/userAgent.ts` (needs `APP_URL`); a
+  hung request would otherwise block a limiter queue for everyone.
 
 `user.ts` / `artist.ts` / `album.ts` are typed wrappers over specific Last.fm
 methods; `types.ts` holds the response shapes. `pickImage` selects the largest
@@ -211,10 +230,12 @@ a refetch.
 ### Cover art (`src/lib/coverart.ts`)
 
 Last.fm frequently returns a placeholder "star" image (detected by known md5
-hashes). `resolveCover` upgrades real Last.fm CDN images to 600×600 and falls
-back to the Cover Art Archive by mbid when Last.fm only has a placeholder.
-Returns `null` when nothing is found (UI shows its own placeholder). Allowed
-remote image hosts are whitelisted in `next.config.ts`.
+hashes). `resolveCover` returns real Last.fm CDN images (the client upgrades them to
+600×600) and falls back to the Cover Art Archive when Last.fm only has a
+placeholder: a `HEAD /release/<mbid>/front-500` (Last.fm mbids are release ids)
+without following the redirect, cached 24h including a definite "no cover".
+Returns `null` when nothing is found (UI shows its own placeholder). Covers are
+plain `<img>` tags (no `next/image`).
 
 ### Auth & access control
 
@@ -228,8 +249,8 @@ Two independent, both-optional layers plus the Last.fm OAuth session:
    and Node runtimes.
 2. **Last.fm OAuth session** (`src/lib/session.ts`, iron-session) — login at
    `/api/auth/login` redirects to Last.fm; `/api/auth/callback` exchanges the
-   token for `{username, sessionKey}` and saves them in an encrypted, httpOnly
-   cookie (`next_album_session`, 30-day).
+   token for `{username, sessionKey}` and saves only the username in an
+   encrypted, httpOnly cookie (`next_album_session`, 30-day).
 3. **Username allowlist** (`src/lib/access.ts`) — checked in the callback. If
    `ALLOWED_LASTFM_USERS` is set and the account isn't on it, the session is not
    saved and the user is redirected with `?error=not_allowed`.
@@ -242,4 +263,7 @@ Two independent, both-optional layers plus the Last.fm OAuth session:
   (e.g. `getApiKey`, `getSessionPassword`) that throw a clear error when missing
   — not at module load. Follow this pattern for new env-dependent code.
 - The in-process cache (`cache.ts`) is per-instance; it is not shared across
-  multiple server instances. Fine for single-instance deploys.
+  multiple server instances. Fine for single-instance deploys. It stores the
+  promise (concurrent callers share one load; failures aren't cached), sweeps
+  expired entries and caps the store at 5000 entries. Keep cached values slim.
+  TTLs: shared artist/album data 24h, user library 24h, profile 1h.

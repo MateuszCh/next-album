@@ -11,9 +11,9 @@ The app is **multi-user** — everyone logs in with their own Last.fm account
 ## Stack
 
 Next.js (App Router) + TypeScript. All Last.fm communication and request
-signing happen on the server, so the `shared_secret` and session key never
-reach the browser. The session lives in an encrypted, httpOnly cookie
-(`iron-session`).
+signing happen on the server, so the `shared_secret` never reaches the
+browser. The session (just the Last.fm username) lives in an encrypted,
+httpOnly cookie (`iron-session`).
 
 ## Setup
 
@@ -50,15 +50,19 @@ specific Last.fm accounts". You can use both, one, or neither.
 
 ## How it works
 
-- **Data**: after login the server fetches public profile data
-  (`user.getTopAlbums`, `user.getTopArtists`, `user.getRecentTracks`) and caches
-  it per user (~1h TTL), so subsequent rolls are instant.
+- **Data**: after login the server fetches public profile data and caches it
+  per user: the whole artist library (`user.getTopArtists`, ~24h), top albums
+  of all time and of the last 3 months (`user.getTopAlbums`, ~1h) and the last
+  few scrobbles (`user.getRecentTracks`, ~5 min).
 - **Similarity**: taken ready-made from Last.fm (`artist.getSimilar`, with the
   `match` score).
-- **Picking**: weighted — by playcount for favorites, by `match` for discovery.
-  Recently played albums are skipped.
+- **Picking**: weighted — by playcount for favorites, by `match` for discovery
+  (seeds by √playcount). Favorites skip albums played in the last 3 months;
+  discovery skips artists you know (20+ plays) and albums you already played by
+  artists you've only sampled. Both skip the albums in your recent roll
+  history.
 - **Cover art**: when Last.fm returns a placeholder, we fall back to the Cover
-  Art Archive by `mbid`.
+  Art Archive (500px thumbnail) by release `mbid`.
 
 ## Last.fm API limits
 
@@ -68,10 +72,15 @@ within the limit via:
 
 - **Global limiter** (`src/lib/lastfm/limiter.ts`) — serializes calls with a
   ~250 ms spacing (~4 req/s).
-- **Retry with backoff** on error 29 / HTTP 429 (`src/lib/lastfm/client.ts`).
-- **Caching**: user profile 1h, artist data (`getSimilar`, `getTopAlbums`)
-  ~10 min — reducing the number of real requests.
+- **Retry with backoff** on error 29 / HTTP 429 and transient errors (8, 11, 16,
+  HTTP 5xx); every request times out after 10 s (`src/lib/lastfm/client.ts`).
+- **Caching**: library 24h, profile 1h, artist and album data (`getSimilar`,
+  `getTopAlbums`, `album.getInfo`) 24h, user info 1h — reducing the number of
+  real requests.
 - **Attribution**: a "Powered by AudioScrobbler / Last.fm" footer + links to
   Last.fm pages (ToS requirement).
 
-Usage is non-commercial; we don't persist any data (the 100 MB cap doesn't apply).
+Usage is non-commercial. Per-user roll history and saved albums (album names,
+links, cover URLs from Last.fm) are persisted in MongoDB, and Last.fm responses
+are cached in memory — together they must stay within the ToS 100 MB cap on
+stored Last.fm data.

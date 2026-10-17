@@ -4,6 +4,7 @@
 // fetch; the server owns dedup/cap and identity. Everything is best-effort — a
 // failed write is logged and swallowed so the UI keeps working.
 
+import { recommendationKey } from '@/lib/identity';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 export interface UserData {
@@ -14,9 +15,9 @@ export interface UserData {
 
 const EMPTY: UserData = { lastAlbum: null, history: [], saved: [] };
 
-/** Identity key — mirrors the server's `albumKey`. */
+/** Identity key — the same normalized key the server dedups with. */
 export function albumKey(album: AlbumRecommendation): string {
-    return `${album.artist}::${album.name}`.toLowerCase();
+    return recommendationKey(album);
 }
 
 export function isSaved(saved: AlbumRecommendation[], album: AlbumRecommendation): boolean {

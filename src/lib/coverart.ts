@@ -3,6 +3,9 @@
 // detect it by known hashes and try a fallback to the Cover Art Archive (by
 // release mbid) when an mbid is available.
 
+import { cached } from '@/lib/cache';
+import { getUserAgent } from '@/lib/userAgent';
+
 // Known Last.fm placeholder hashes (the star image).
 const LASTFM_PLACEHOLDER_HASHES = [
     '2a96cbd8b46e442fc41c2b86b821562f', // album/track star
@@ -36,29 +39,41 @@ export function upgradeLastfmImage(url: string): string {
     );
 }
 
+// Covers rarely change; the result (including "no cover") is cached for a day.
+const CAA_TTL_MS = 24 * 60 * 60 * 1000;
+const CAA_TIMEOUT_MS = 5000;
+
 /**
- * Checks whether the Cover Art Archive has a front cover for the given mbid.
- * Returns the cover URL or null.
+ * Checks whether the Cover Art Archive has a front cover for the given release
+ * mbid. Returns the cover URL or null.
+ *
+ * Last.fm mbids are release ids (not release-groups), so only `/release/` is
+ * tried. `front-500` is a 500px thumbnail; plain `/front` would be the original
+ * upload, often several MB. CAA answers an existing cover with a 307 to
+ * archive.org and a missing one with 404, so the redirect isn't followed — the
+ * browser does that when it loads the image.
  */
-async function coverArtArchiveUrl(mbid: string): Promise<string | null> {
-    // CAA supports both release and release-group; try both.
-    const candidates = [
-        `https://coverartarchive.org/release-group/${mbid}/front`,
-        `https://coverartarchive.org/release/${mbid}/front`,
-    ];
-    for (const url of candidates) {
-        try {
+function coverArtArchiveUrl(mbid: string): Promise<string | null> {
+    // Only a definite answer is cached: network errors, timeouts and 503s throw
+    // out of the loader (not cached) and count as "no cover" for this roll only.
+    return cached(
+        `caa:${mbid}`,
+        async () => {
+            const url = `https://coverartarchive.org/release/${mbid}/front-500`;
             const res = await fetch(url, {
                 method: 'HEAD',
-                redirect: 'follow',
+                redirect: 'manual',
                 cache: 'no-store',
+                headers: { 'User-Agent': getUserAgent() },
+                signal: AbortSignal.timeout(CAA_TIMEOUT_MS),
             });
-            if (res.ok) return url;
-        } catch {
-            // ignore and try the next one
-        }
-    }
-    return null;
+            if (res.ok || (res.status >= 300 && res.status < 400)) return url;
+            // 404: no such release or no front cover; 400: not a valid mbid.
+            if (res.status === 404 || res.status === 400) return null;
+            throw new Error(`Cover Art Archive HTTP ${res.status}`);
+        },
+        CAA_TTL_MS,
+    ).catch(() => null);
 }
 
 /**
