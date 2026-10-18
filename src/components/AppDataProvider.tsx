@@ -14,7 +14,10 @@ import { DECADES } from '@/lib/recommend/decades';
 import { COUNTRIES } from '@/lib/recommend/countries';
 import { albumKey, guestStore, mergeGuestData, remoteStore } from '@/lib/history';
 import { upgradeLastfmImage } from '@/lib/coverUrl';
+import { APP_MODE_COOKIE, APP_MODES, parseAppMode, type AppMode } from '@/lib/appMode';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
+
+export { APP_MODES, type AppMode };
 
 export interface Me {
     loggedIn: boolean;
@@ -24,12 +27,6 @@ export interface Me {
     imageUrl?: string | null;
     gateEnabled?: boolean;
 }
-
-// `lastfm`: picks from the user's Last.fm profile (slider, no filters).
-// `search`: Discogs album search by filters — no Last.fm account needed.
-export type AppMode = 'lastfm' | 'search';
-
-export const APP_MODES: AppMode[] = ['lastfm', 'search'];
 
 export type TagDimension = 'genre' | 'decade' | 'country';
 
@@ -77,17 +74,22 @@ function rollUrl(mode: AppMode, discovery: number, filters: Filters): string {
 
 // A roll's response: the album, or an error code when the request failed.
 type RollResponse =
-    | { ok: true; data: AlbumRecommendation }
-    | { ok: false; data: { error?: string } };
+    { ok: true; data: AlbumRecommendation } | { ok: false; data: { error?: string } };
 
 async function fetchRoll(url: string): Promise<RollResponse> {
     const res = await fetch(url);
     return { ok: res.ok, data: await res.json() } as RollResponse;
 }
 
+function writeModeCookie(mode: AppMode): void {
+    document.cookie = `${APP_MODE_COOKIE}=${mode}; path=/; max-age=31536000; samesite=lax`;
+}
+
 interface AppData {
-    /** `null` until `/api/me` answered. */
-    me: Me | null;
+    /** Seeded from the session by the server; `/api/me` later adds the avatar. */
+    me: Me;
+    /** Whether history, saved and the last album have loaded. */
+    dataReady: boolean;
     mode: AppMode;
     setMode: (mode: AppMode) => void;
     discovery: number;
@@ -116,9 +118,23 @@ const Ctx = createContext<AppData | null>(null);
  * by every tab (Losuj, Historia, Ulubione, Konto) so switching tabs keeps them —
  * including a roll still in flight.
  */
-export function AppDataProvider({ children }: { children: React.ReactNode }) {
-    const [me, setMe] = useState<Me | null>(null);
-    const [mode, setModeState] = useState<AppMode>('lastfm');
+export function AppDataProvider({
+    initialMe,
+    initialMode,
+    children,
+}: {
+    initialMe: Me;
+    /** The mode cookie; `null` when none is stored yet. */
+    initialMode: AppMode | null;
+    children: React.ReactNode;
+}) {
+    const [me, setMe] = useState<Me>(initialMe);
+    // A remembered mode wins; otherwise Last.fm users start in the Last.fm mode
+    // and everyone else in the search (no Last.fm needed).
+    const [mode, setModeState] = useState<AppMode>(
+        initialMode ?? (initialMe.lastfmUsername ? 'lastfm' : 'search'),
+    );
+    const [dataReady, setDataReady] = useState(false);
     const [discovery, setDiscoveryState] = useState(0.5);
     const [filters, setFilters] = useState<Filters>(NO_FILTERS);
     const [album, setAlbum] = useState<AlbumRecommendation | null>(null);
@@ -134,38 +150,41 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const prefetch = useRef<{ url: string; result: Promise<RollResponse | null> } | null>(null);
 
     // Logged in: the account's data (MongoDB); logged out: this browser's localStorage.
-    const store = me?.loggedIn ? remoteStore : guestStore;
+    const store = me.loggedIn ? remoteStore : guestStore;
+    const initialLoggedIn = initialMe.loggedIn;
 
     useEffect(() => {
+        // Logged in: first fold any guest (localStorage) data into the account,
+        // then load the account's data. Logged out: the guest data.
+        const load = initialLoggedIn
+            ? mergeGuestData().then((merged) => merged ?? remoteStore.fetch())
+            : guestStore.fetch();
+        load.then((ud) => {
+            // A roll made in the meantime wins over the stored last album.
+            if (ud.lastAlbum) setAlbum((current) => current ?? ud.lastAlbum);
+            setHistory(ud.history);
+            setSaved(ud.saved);
+        }).finally(() => setDataReady(true));
+
+        // The avatar, and an email account's Last.fm link made on another device.
         fetch('/api/me')
-            .then((r) => r.json())
-            .then((data: Me) => {
-                setMe(data);
-                // A remembered mode wins; otherwise Last.fm users start in the
-                // Last.fm mode and everyone else in the search (no Last.fm needed).
-                const storedMode = window.localStorage.getItem('appMode') as AppMode | null;
-                setModeState(
-                    storedMode && APP_MODES.includes(storedMode)
-                        ? storedMode
-                        : data.lastfmUsername
-                          ? 'lastfm'
-                          : 'search',
-                );
-                // Logged in: first fold any guest (localStorage) data into the
-                // account, then load the account's data. Logged out: the guest data.
-                const load = data.loggedIn
-                    ? mergeGuestData().then((merged) => merged ?? remoteStore.fetch())
-                    : guestStore.fetch();
-                load.then((ud) => {
-                    if (ud.lastAlbum) setAlbum(ud.lastAlbum);
-                    setHistory(ud.history);
-                    setSaved(ud.saved);
-                });
+            .then((r) => (r.ok ? (r.json() as Promise<Me>) : null))
+            .then((data) => {
+                if (data) setMe(data);
             })
             .catch(() => {
-                setMe({ loggedIn: false });
-                setModeState('search');
+                // keep the session's view
             });
+
+        // One-time migration for a mode still only in localStorage (before the cookie).
+        if (initialMode === null) {
+            const legacy = parseAppMode(window.localStorage.getItem('appMode'));
+            if (legacy) {
+                setModeState(legacy);
+                writeModeCookie(legacy);
+            }
+            window.localStorage.removeItem('appMode');
+        }
 
         const stored = window.localStorage.getItem('discovery');
         if (stored !== null) {
@@ -186,12 +205,12 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             setError(err);
             window.history.replaceState({}, '', window.location.pathname);
         }
-    }, []);
+    }, [initialLoggedIn, initialMode]);
 
     const setMode = useCallback((next: AppMode) => {
         setModeState(next);
         setError(null);
-        window.localStorage.setItem('appMode', next);
+        writeModeCookie(next);
     }, []);
 
     const setDiscovery = useCallback((value: number) => {
@@ -311,6 +330,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const value = useMemo<AppData>(
         () => ({
             me,
+            dataReady,
             mode,
             setMode,
             discovery,
@@ -332,6 +352,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }),
         [
             me,
+            dataReady,
             mode,
             setMode,
             discovery,

@@ -125,6 +125,7 @@ const en: Dict = {
     'lcd.aria': 'Now picked',
     'lcd.mode': 'Mode: {mode}',
     'lcd.noSignal': 'No signal',
+    'lcd.tuning': 'Tuning…',
     'tuner.tuning': 'Tuning',
 
     // Plural forms are picked with Intl.PluralRules (`countLabel`).
@@ -322,6 +323,7 @@ const pl: Dict = {
     'lcd.aria': 'Teraz wylosowany',
     'lcd.mode': 'Tryb: {mode}',
     'lcd.noSignal': 'Brak sygnału',
+    'lcd.tuning': 'Strojenie…',
     'tuner.tuning': 'Strojenie',
 
     'count.albums.one': '{count} album',

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { AlbumThumb, itemKey } from '@/components/AlbumThumb';
 import { useAppData } from '@/components/AppDataProvider';
 import { StarIcon } from '@/components/Icons';
+import { TilesSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
 import { countLabel } from '@/lib/i18n';
@@ -12,7 +13,7 @@ import { countLabel } from '@/lib/i18n';
 export default function SavedPage() {
     const { t, lang } = useI18n();
     const { skin } = useTheme();
-    const { me, saved, showAlbum, removeSaved } = useAppData();
+    const { dataReady, saved, showAlbum, removeSaved } = useAppData();
     const router = useRouter();
 
     return (
@@ -26,8 +27,8 @@ export default function SavedPage() {
                 )}
             </header>
 
-            {me === null ? (
-                <p className="screen-empty">{t('loading')}</p>
+            {!dataReady ? (
+                <TilesSkeleton />
             ) : (
                 <>
                     {saved.length === 0 ? (

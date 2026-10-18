@@ -25,7 +25,7 @@ export default function AccountPage() {
     const { t } = useI18n();
     const { me } = useAppData();
     const [tab, setTab] = useState<Tab>('account');
-    const loggedIn = me?.loggedIn ?? false;
+    const loggedIn = me.loggedIn;
 
     return (
         <div className="screen">
@@ -33,40 +33,36 @@ export default function AccountPage() {
                 <h1 className="screen-title">{t('nav.account')}</h1>
             </header>
 
-            {me === null ? (
-                <p className="screen-empty">{t('loading')}</p>
-            ) : (
-                <div className="screen-stack">
-                    <Segmented
-                        kind="tabs"
-                        label={t('account.tab.aria')}
-                        options={[
-                            {
-                                value: 'account',
-                                label: t(loggedIn ? 'account.tab.profile' : 'account.tab.login'),
-                            },
-                            { value: 'settings', label: t('account.tab.settings') },
-                        ]}
-                        value={tab}
-                        onChange={setTab}
-                        panelIdPrefix="account"
-                    />
-                    <div
-                        role="tabpanel"
-                        id={`account-${tab}`}
-                        aria-labelledby={`account-tab-${tab}`}
-                        className="screen-stack"
-                    >
-                        {tab === 'settings' ? (
-                            <Settings loggedIn={loggedIn} />
-                        ) : loggedIn ? (
-                            <Profile me={me} />
-                        ) : (
-                            <GuestLogin gateEnabled={me.gateEnabled ?? false} />
-                        )}
-                    </div>
+            <div className="screen-stack">
+                <Segmented
+                    kind="tabs"
+                    label={t('account.tab.aria')}
+                    options={[
+                        {
+                            value: 'account',
+                            label: t(loggedIn ? 'account.tab.profile' : 'account.tab.login'),
+                        },
+                        { value: 'settings', label: t('account.tab.settings') },
+                    ]}
+                    value={tab}
+                    onChange={setTab}
+                    panelIdPrefix="account"
+                />
+                <div
+                    role="tabpanel"
+                    id={`account-${tab}`}
+                    aria-labelledby={`account-tab-${tab}`}
+                    className="screen-stack"
+                >
+                    {tab === 'settings' ? (
+                        <Settings loggedIn={loggedIn} />
+                    ) : loggedIn ? (
+                        <Profile me={me} />
+                    ) : (
+                        <GuestLogin gateEnabled={me.gateEnabled ?? false} />
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }

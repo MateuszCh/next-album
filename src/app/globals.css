@@ -221,6 +221,121 @@ button {
     }
 }
 
+/* Loading placeholders (Skeleton.tsx): the real layouts with shimmering bars.
+   They fade in after a beat, so a fast load never flashes them. */
+.skel-wrap {
+    animation: skel-appear 0.25s ease 0.15s both;
+}
+
+@keyframes skel-appear {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.skel-lines {
+    gap: 10px;
+}
+
+.skel {
+    display: block;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(
+        90deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-highlight) 50%,
+        var(--skeleton-base) 100%
+    );
+    background-size: 200% 100%;
+    animation: cover-shimmer 1.2s ease-in-out infinite;
+}
+
+.skel--title {
+    width: 72%;
+    height: 34px;
+    border-radius: 10px;
+}
+
+.skel--short {
+    width: 44%;
+    height: 16px;
+}
+
+.skel--text {
+    width: 88%;
+}
+
+.skel--name {
+    width: 70%;
+    height: 15px;
+}
+
+.skel--sub {
+    width: 45%;
+    height: 12px;
+}
+
+/* On the Tuner LCD: dim amber segments instead of a grey shimmer. */
+.skel--lcd {
+    background: var(--tuner-display-rule);
+    border-radius: 2px;
+    animation: skel-pulse 1.4s ease-in-out infinite;
+}
+
+.skel--lcd.skel--title {
+    width: 150px;
+    height: 22px;
+}
+
+.skel--lcd.skel--short {
+    width: 96px;
+    height: 11px;
+}
+
+.skel--lcd.skel--text {
+    width: 80%;
+    height: 10px;
+}
+
+.skel-tuning {
+    animation: skel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skel-pulse {
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.skel-wrap .row__cover,
+.skel-wrap .tile__art {
+    position: relative;
+}
+
+.row__pick--skel {
+    cursor: default;
+}
+
+.row__pick--skel .row__meta {
+    flex: 1;
+}
+
+.row__pick--skel:hover {
+    background: var(--bg-elev);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skel,
+    .skel--lcd,
+    .skel-tuning {
+        animation: none;
+    }
+}
+
 /* Tuner key LED: hidden in Okładka, lit on the selected / pressed key. */
 .led {
     display: none;
@@ -2545,7 +2660,8 @@ button {
     border-radius: 6px;
     background-color: var(--tuner-display);
     box-shadow: inset 0 0 0 1px var(--border-subtle);
-    background-image: linear-gradient(var(--tuner-display-text), var(--tuner-display-text)),
+    background-image:
+        linear-gradient(var(--tuner-display-text), var(--tuner-display-text)),
         linear-gradient(var(--tuner-display-label), var(--tuner-display-label));
     background-size:
         60% 5px,

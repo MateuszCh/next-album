@@ -89,7 +89,8 @@ docker run -p 3000:3000 \
 
 Next.js 15 (App Router) + React 19 + TypeScript. The app picks one album to
 listen to, in **two modes** (the Dla mnie / Szukaj switch on the Losuj screen,
-`src/app/(app)/page.tsx`, remembered in localStorage `appMode`):
+`src/app/(app)/page.tsx`, remembered in the `appMode` cookie so the server
+renders the right mode; a legacy localStorage `appMode` is migrated once):
 
 - **For me** (`lastfm`) — from the user's Last.fm profile, steered only by the
   favorites ↔ discovery slider. No filters. Needs a Last.fm username: a Last.fm
@@ -223,8 +224,9 @@ preferences and the roll + prefetch for every tab, so switching tabs keeps them
 
 The dedup/cap/merge logic is pure and shared by both in `src/lib/userDataOps.ts`
 (`sanitizeUserData` validates untrusted merge input and localStorage). UI-only
-preferences (`appMode`, `discovery`, and the `genre`/`decade`/`country` tag
-lists) live in localStorage.
+preferences (`discovery` and the `genre`/`decade`/`country` tag lists) live in
+localStorage. Until this data has loaded (`dataReady`), the tabs show
+placeholders from `src/components/Skeleton.tsx` rather than the empty states.
 
 ### Database (`src/lib/db.ts`)
 
@@ -388,8 +390,10 @@ Two independent, both-optional layers plus the (optional) account session:
    it, the session is not saved and the user is redirected with
    `?error=not_allowed`. It does not restrict email accounts.
 
-`GET /api/me` returns the current account (`lastfmUsername`, `email`, avatar;
-an email account's Last.fm link is refreshed from the DB);
+The `(app)` layout seeds the account from the session cookie on the server, so
+the first paint already shows the right screen (no loading screen);
+`GET /api/me` then fills in what the session lacks (`lastfmUsername`, `email`,
+avatar; an email account's Last.fm link is refreshed from the DB);
 `POST /api/auth/logout` clears it.
 
 ## Conventions

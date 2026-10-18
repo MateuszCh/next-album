@@ -7,6 +7,7 @@ import { AlbumThumb, itemKey } from '@/components/AlbumThumb';
 import { useAppData } from '@/components/AppDataProvider';
 import { StarIcon } from '@/components/Icons';
 import { Segmented } from '@/components/Segmented';
+import { RowsSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/components/LanguageProvider';
 import { countLabel } from '@/lib/i18n';
 import { albumKey } from '@/lib/history';
@@ -18,7 +19,7 @@ const FILTERS: Filter[] = ['all', 'lastfm', 'search'];
 /** Historia: every rolled album, filterable by mode; a row re-opens it on Losuj. */
 export default function HistoryPage() {
     const { t, lang } = useI18n();
-    const { me, history, saved, showAlbum, toggleSave } = useAppData();
+    const { dataReady, history, saved, showAlbum, toggleSave } = useAppData();
     const router = useRouter();
     const [filter, setFilter] = useState<Filter>('all');
 
@@ -40,8 +41,8 @@ export default function HistoryPage() {
                 )}
             </header>
 
-            {me === null ? (
-                <p className="screen-empty">{t('loading')}</p>
+            {!dataReady ? (
+                <RowsSkeleton />
             ) : history.length === 0 ? (
                 <p className="screen-empty">{t('history.empty')}</p>
             ) : (

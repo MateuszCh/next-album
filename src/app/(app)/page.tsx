@@ -10,6 +10,7 @@ import { Logo } from '@/components/Logo';
 import { ModeSlider } from '@/components/ModeSlider';
 import { NextButton } from '@/components/NextButton';
 import { SearchFilters } from '@/components/SearchFilters';
+import { AlbumSkeleton } from '@/components/Skeleton';
 import { Segmented } from '@/components/Segmented';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
@@ -22,6 +23,7 @@ export default function PickPage() {
     const { skin } = useTheme();
     const {
         me,
+        dataReady,
         mode,
         setMode,
         discovery,
@@ -39,31 +41,20 @@ export default function PickPage() {
     const header = (
         <header className="pick-head">
             <Logo />
-            {me && (
-                <Segmented
-                    kind="tabs"
-                    compact
-                    label={t('mode.aria')}
-                    options={APP_MODES.map((m) => ({
-                        value: m,
-                        label: t(m === 'lastfm' ? 'mode.lastfm' : 'mode.searchShort'),
-                    }))}
-                    value={mode}
-                    onChange={setMode}
-                    disabled={loading}
-                />
-            )}
+            <Segmented
+                kind="tabs"
+                compact
+                label={t('mode.aria')}
+                options={APP_MODES.map((m) => ({
+                    value: m,
+                    label: t(m === 'lastfm' ? 'mode.lastfm' : 'mode.searchShort'),
+                }))}
+                value={mode}
+                onChange={setMode}
+                disabled={loading}
+            />
         </header>
     );
-
-    if (me === null) {
-        return (
-            <div className="pick">
-                {header}
-                <p className="screen-empty">{t('loading')}</p>
-            </div>
-        );
-    }
 
     const errorBox = error && <div className="error pick-error">{errorMessage(t, error)}</div>;
 
@@ -91,8 +82,12 @@ export default function PickPage() {
     const hint = t(mode === 'lastfm' ? 'hint.default' : 'hint.search');
     const settingsLabel = t(mode === 'lastfm' ? 'draw.settings' : 'draw.filters');
 
+    // Until the last album has loaded, a placeholder card instead of the
+    // "nothing picked yet" one, which would flash before the album.
     const display = album ? (
         <AlbumCard key={albumKey(album)} album={album} appMode={mode} />
+    ) : !dataReady ? (
+        <AlbumSkeleton appMode={mode} />
     ) : (
         <AlbumEmpty
             appMode={mode}
