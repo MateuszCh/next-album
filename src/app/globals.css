@@ -2548,11 +2548,6 @@ button {
     letter-spacing: 0.04em;
 }
 
-.sk-nav--key .sk-nav__count--empty {
-    color: var(--tuner-display-label);
-    opacity: 0.7;
-}
-
 /* ---------- StylePicker ---------- */
 
 .sk-style {

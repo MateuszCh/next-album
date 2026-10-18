@@ -37,8 +37,7 @@ const ITEMS: {
 /**
  * The sticky four-tab menu: a coral pill marks the current tab in Okładka, a
  * lit key in Tuner. Historia and Ulubione carry their album count: a badge on
- * the icon in Okładka (hidden at zero), an LCD window on the key in Tuner
- * (a dimmed 00 at zero).
+ * the icon in Okładka, an LCD window on the key in Tuner; an empty tab shows none.
  */
 export function BottomNav() {
     const { t, lang } = useI18n();
@@ -55,14 +54,10 @@ export function BottomNav() {
         >
             {ITEMS.map(({ href, label, icon, counted }) => {
                 const current = pathname === href;
-                // No count until the data has loaded, so a 0 never flashes first.
-                const count = counted && dataReady ? counts[counted] : null;
-                const shown = count !== null && (tuner || count > 0);
-                const badge = shown && (
-                    <span
-                        className={`sk-nav__count${count === 0 ? ' sk-nav__count--empty' : ''}`}
-                        aria-hidden
-                    >
+                // Only once the data has loaded (so a stale 0 never flashes), and never 0.
+                const count = counted && dataReady ? counts[counted] : 0;
+                const badge = count > 0 && (
+                    <span className="sk-nav__count" aria-hidden>
                         {tuner ? String(count).padStart(2, '0') : count}
                     </span>
                 );
@@ -72,7 +67,7 @@ export function BottomNav() {
                         href={href}
                         aria-current={current ? 'page' : undefined}
                         aria-label={
-                            count !== null
+                            count > 0
                                 ? `${t(label)}, ${countLabel(t, lang, 'count.albums', count)}`
                                 : undefined
                         }
