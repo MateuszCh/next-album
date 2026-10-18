@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import { Credits } from '@/components/Credits';
 import { useI18n } from '@/components/LanguageProvider';
+import { Logo } from '@/components/Logo';
 import { errorMessage } from '@/lib/i18n';
 
 export default function GatePage() {
     const { t } = useI18n();
+    const id = useId();
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
@@ -32,36 +35,43 @@ export default function GatePage() {
         }
     }
 
+    // Outside the tab group: no bottom nav, the same header and screen pieces.
     return (
-        <main className="page">
-            <div className="container">
-                <h1 className="title">{t('gate.title')}</h1>
-                <p className="subtitle">{t('gate.subtitle')}</p>
-                <form onSubmit={submit} className="gate-form">
-                    <input
-                        type="password"
-                        className="gate-input"
-                        placeholder={t('gate.placeholder')}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoFocus
-                    />
-                    <button
-                        type="submit"
-                        className="btn btn-primary btn-big"
-                        disabled={loading || !password}
-                    >
-                        {loading ? t('gate.checking') : t('gate.enter')}
-                    </button>
-                </form>
+        <div className="gate">
+            <header className="pick-head">
+                <Logo />
+            </header>
+            <main className="screen">
+                <header className="screen-head">
+                    <h1 className="screen-title">{t('gate.title')}</h1>
+                </header>
+                <p className="screen-note">{t('gate.subtitle')}</p>
+                <section className="panel login-card">
+                    <form onSubmit={submit} className="sk-form">
+                        <div className="sk-field">
+                            <label htmlFor={`${id}-password`}>{t('gate.password')}</label>
+                            <input
+                                id={`${id}-password`}
+                                type="password"
+                                className="sk-input"
+                                autoComplete="current-password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="sk-btn sk-btn--primary"
+                            disabled={loading || !password}
+                        >
+                            {loading ? t('gate.checking') : t('gate.enter')}
+                        </button>
+                    </form>
+                </section>
                 {error && <div className="error">{errorMessage(t, error)}</div>}
-            </div>
-
-            <footer className="footer">
-                <a href="https://www.last.fm/" target="_blank" rel="noreferrer">
-                    {t('footer.poweredBy')}
-                </a>
-            </footer>
-        </main>
+                <Credits />
+            </main>
+        </div>
     );
 }

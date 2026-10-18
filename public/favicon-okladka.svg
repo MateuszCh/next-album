@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Okładka skin (the default): the disc-and-play mark as a coral disc with a
+       faint record groove and a dark play, on a #141216 tile. layout.tsx links
+       the saved skin's favicon (see SKIN_ICONS in src/lib/skin.ts). -->
+  <rect width="32" height="32" rx="7" fill="#141216"/>
+  <circle cx="16" cy="16" r="12.5" fill="#ff7a59"/>
+  <circle cx="16" cy="16" r="8.75" fill="none" stroke="#1f0d07" stroke-opacity="0.3" stroke-width="1"/>
+  <path d="M13.6 11.2v9.6l7.4-4.8z" fill="#1f0d07"/>
+</svg>

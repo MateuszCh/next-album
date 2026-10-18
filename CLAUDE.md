@@ -88,8 +88,8 @@ docker run -p 3000:3000 \
 ## Architecture
 
 Next.js 15 (App Router) + React 19 + TypeScript. The app picks one album to
-listen to, in **two modes** (tabs in `src/app/page.tsx`, remembered in
-localStorage `appMode`):
+listen to, in **two modes** (the Dla mnie / Szukaj switch on the Losuj screen,
+`src/app/(app)/page.tsx`, remembered in localStorage `appMode`):
 
 - **For me** (`lastfm`) — from the user's Last.fm profile, steered only by the
   favorites ↔ discovery slider. No filters. Needs a Last.fm username: a Last.fm
@@ -98,8 +98,9 @@ localStorage `appMode`):
 - **Find an album** (`search`) — a random well-loved album from **Discogs** for
   genre / decade / country filters. No slider and **no login needed**.
 
-Logging in is optional (`/login`: Last.fm, or email + password). See "Auth &
-access control".
+Logging in is optional (Konto → Zaloguj się at `/account`: Last.fm, or email +
+password; `/login` redirects there). See "Auth & access control". The UI comes in
+two user-selectable skins — see "UI: skins, tabs and theming".
 
 **All Last.fm communication and request signing are server-only** — the
 `shared_secret` never reaches the browser, and the Last.fm session key isn't
@@ -191,7 +192,7 @@ anonymous and token requests. **Anonymous requests get no cover images**
 Last.fm `album.getInfo` art (API key only, no account) and then the Cover Art
 Archive via `resolveCover`.
 
-The client prefetches in search mode: after showing an album, `page.tsx` fetches
+The client prefetches in search mode: after showing an album, `AppDataProvider` fetches
 the next one for the same URL in the background (and warms both cover sizes), and
 the next roll uses it if the URL still matches and it isn't the album on screen.
 Not done in For me mode — a prefetch would bypass the server's recent-rolls check.
@@ -199,14 +200,17 @@ Not done in For me mode — a prefetch would bypass the server's recent-rolls ch
 ### History & saved albums
 
 Every roll (both modes) is pushed to a capped (50) history list and set as the
-last album; the star toggles an album into a saved list. `HistoryPanel`
-re-displays a past album without a refetch (recommendations are
+last album; the star toggles an album into a saved list. The Historia
+(`/history`, filterable by mode) and Ulubione (`/saved`, a cover grid) tabs
+re-open a past album on Losuj without a refetch (recommendations are
 JSON-serializable; `AlbumRecommendation.mode` is `rediscovery` / `discovery` /
 `search`, `source` is `lastfm` / `discogs`).
 
 `src/lib/history.ts` exposes one `UserDataStore` interface with two backends,
-picked by `src/app/page.tsx` (which owns the saved state and passes it to
-`AlbumCard`):
+picked by `AppDataProvider` (`src/components/AppDataProvider.tsx`, in the
+`(app)` layout), which owns the account, the shown album, history/saved, the pick
+preferences and the roll + prefetch for every tab, so switching tabs keeps them
+(including a roll in flight):
 
 - **Logged in** — `remoteStore`: per account in MongoDB (keyed by the session
   `userId`) via `/api/user-data`. Server logic in `src/lib/userData.ts` (`GET`
@@ -214,7 +218,7 @@ picked by `src/app/page.tsx` (which owns the saved state and passes it to
   discriminator: `push` / `set-last` / `toggle-saved` / `remove-saved` /
   `merge`).
 - **Logged out** — `guestStore`: the same data in localStorage (`guestData`).
-  After any login the page calls `mergeGuestData()` (`action: 'merge'`), which
+  After any login the provider calls `mergeGuestData()` (`action: 'merge'`), which
   folds it into the account (guest entries first, deduped) and clears it.
 
 The dedup/cap/merge logic is pure and shared by both in `src/lib/userDataOps.ts`
@@ -273,12 +277,65 @@ Dependency-free client i18n: a flat `pl`/`en` dictionary plus an interpolating
 writes the cookie (1y) for the next server render. Recommendation reasons are
 returned from the API as a structured `AlbumReason` union and translated on the
 client, so switching language re-renders an already-shown album's reason without
-a refetch.
+a refetch. Counts with plural forms ("12 albumów") go through `countLabel`
+(`Intl.PluralRules`, keys `<key>.one|few|many|other`).
 
-The light/dark theme works the same way: `ThemeProvider` seeds from a `theme`
-cookie read in `layout.tsx` (default `dark`, set as `data-theme` on `<html>`),
-and `setTheme` writes the cookie (1y); a legacy localStorage `theme` is migrated
-to the cookie once.
+### UI: skins, tabs and theming
+
+The UI is a phone-first column (`--app-max` 560px) with a fixed bottom nav, in
+one of two **skins** the user picks in Konto → Ustawienia. The look comes from
+the Next Album design system (Design System artifact
+https://claude.ai/artifact/2kUR2FZqPfrVT5x2sPmrN8 — tokens.json and the Skins
+components are the source of truth for colours, type and sizes).
+
+- **Themes.** `data-theme` on `<html>` is one of `okladka-dark`,
+  `okladka-light` (Okładka: cover-first, coral `#ff7a59`) or `tuner` (hi-fi
+  hardware, amber `#ffb000` LCD, dark only). It is derived by `themeFor()` in
+  `src/lib/skin.ts` from two cookies (1y): `skin` (`okladka` | `tuner`, default
+  `okladka`) and `theme` (the mode, `dark` | `light`, default `dark`). Tuner
+  ignores the mode (Ustawienia disables "Jasny"), and switching back to Okładka
+  restores the stored mode. `layout.tsx` reads both cookies so SSR renders the
+  right theme with no flash; `ThemeProvider` exposes `skin`, `mode`, `theme`,
+  `setSkin`, `setMode`, writes the cookies and sets `data-theme` in a layout
+  effect (a legacy localStorage `theme` is migrated to the cookie once).
+- **Tokens and styles** live in `src/app/globals.css`: one token block per
+  theme (`okladka-dark` is also the `:root` fallback), then theme-independent
+  shape/size tokens (`--radius-*`, `--play-button`, `--next-key`,
+  `--bottom-nav`, `--touch-min`, …), then component styles. Tuner differences
+  are rules scoped with `[data-theme='tuner']`; the Tuner LED (`.led`) is hidden
+  in Okładka.
+- **Fonts** (`next/font` in `layout.tsx`): Bricolage Grotesque + DM Sans for
+  Okładka (preloaded), Martian Mono (with the `wdth` axis for the condensed
+  `font-stretch: 85%` titles) + Instrument Sans for Tuner (`preload: false`).
+  They are exposed as `--font-okladka-display/-sans` and
+  `--font-tuner-mono/-sans`, and each theme maps them onto `--font-display` /
+  `--font-sans`.
+- **Routes.** The tabs are the route group `src/app/(app)/`, whose layout wraps
+  them in `AppDataProvider` and renders `BottomNav`: Losuj (`/`), Historia
+  (`/history`), Ulubione (`/saved`), Konto (`/account` — Profil | Ustawienia
+  when logged in, Zaloguj się | Ustawienia for guests; Ustawienia holds the
+  `StylePicker`, Motyw, Język and the data credits). `/gate` stays outside the
+  group (no nav); `/login` redirects to `/account`.
+- **Skin-variant components** pick their rendering from `useTheme().skin`,
+  never per screen: `AlbumCard` (full-width cover / LCD readout, plus
+  `AlbumEmpty`), `NextButton` (round play with save + settings / full-width
+  key), `ModeSlider` (slider / tuning scale with a needle), `BottomNav` (pill /
+  lit key), `ListenLinks` (pill links / a key row with Save), `SearchFilters`
+  (genre chips / preset keys collapsed to "+ N", decade and country tiles /
+  knobs that unfold a multi-select list) and `Logo`. `Segmented` (tabs/radios)
+  and `StylePicker` (live thumbnails that carry their own `data-theme`) are
+  shared.
+- **Icons follow the skin.** `generateMetadata` in `layout.tsx` links the saved
+  skin's favicon and Apple touch icon from the `skin` cookie (`SKIN_ICONS` in
+  `src/lib/skin.ts`), so the server HTML is right on first load — iOS keeps the
+  touch icon it reads when a home-screen shortcut is added. Favicons are
+  `public/favicon-okladka.svg` / `public/favicon-tuner.svg`; the touch icons are
+  opaque 180px PNGs from `src/app/apple-touch-icon/[skin]/route.tsx`
+  (`ImageResponse`, prerendered for both skins, the favicon artwork full-bleed).
+  Declaring `icons` replaces Next's file-based icons, so there is no
+  `app/icon.svg` / `app/apple-icon`; `public/favicon.ico` (Okładka) is only the
+  unlinked fallback. On a live switch `ThemeProvider` repoints both links. The
+  middleware matcher lets all icon paths through the gate.
 
 ### Cover art (`src/lib/coverart.ts`)
 
@@ -308,7 +365,8 @@ Two independent, both-optional layers plus the (optional) account session:
 2. **Account session** (`src/lib/session.ts`, iron-session) — an encrypted,
    httpOnly cookie (`next_album_session`, 30-day) holding `{ userId,
    lastfmUsername?, email? }`; `getCurrentUser()` reads it (a legacy cookie with
-   only `username` maps to a Last.fm-only account). `/login` offers two ways in:
+   only `username` maps to a Last.fm-only account). Konto (`/account`, guest
+   tab) offers two ways in:
    - **Last.fm** — `/api/auth/login` redirects to Last.fm with a nonce in the
      callback URL, mirrored in a 10-min httpOnly cookie (`next_album_oauth_nonce`,
      `src/lib/oauth.ts`; login-CSRF defense, compared with `safeEqual`);

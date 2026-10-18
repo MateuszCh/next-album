@@ -7,7 +7,7 @@ export function LoginButton({ link = false }: { link?: boolean }) {
     const { t } = useI18n();
     return (
         <a
-            className="btn btn-primary btn-big"
+            className="sk-btn sk-btn--primary"
             href={link ? '/api/auth/login?link=1' : '/api/auth/login'}
         >
             {t(link ? 'link.button' : 'login')}
