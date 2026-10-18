@@ -2,7 +2,7 @@
 
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
-import { ExternalIcon } from '@/components/Icons';
+import { ExternalIcon, StarIcon } from '@/components/Icons';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
 const searchUrl = (artist: string, album: string, service: 'spotify' | 'ytm') => {
@@ -13,8 +13,9 @@ const searchUrl = (artist: string, album: string, service: 'spotify' | 'ytm') =>
 };
 
 /**
- * Where to listen: pill links in Okładka; in Tuner a row of four keys — Save
- * plus the three links (save sits beside the play button in Okładka).
+ * Where to listen: link chips (pills, outlined tags or plain text, per skin).
+ * Where the skin keeps no save beside the Next button, Save leads the row:
+ * Tuner as a row of four keys, Rave as an outlined pink chip.
  */
 export function ListenLinks({
     album,
@@ -28,27 +29,33 @@ export function ListenLinks({
     const { t } = useI18n();
     const { skin } = useTheme();
     const tuner = skin === 'tuner';
+    const withSave = tuner || skin === 'rave';
+    const short = tuner || skin === 'rave' || skin === 'guma';
 
     const links = [
         { href: searchUrl(album.artist, album.name, 'spotify'), label: 'Spotify' },
         {
             href: searchUrl(album.artist, album.name, 'ytm'),
-            label: tuner ? 'YT Music' : 'YouTube Music',
+            label: short ? 'YT Music' : 'YouTube Music',
         },
         { href: album.url, label: album.source === 'discogs' ? 'Discogs' : 'Last.fm' },
     ];
 
     return (
         <nav className={tuner ? 'tun-keys' : 'listen'} aria-label={t('listen.aria')}>
-            {tuner && (
+            {withSave && (
                 <button
                     type="button"
-                    className="tun-key"
+                    className={tuner ? 'tun-key' : 'listen__save'}
                     onClick={onToggleSave}
                     aria-pressed={saved}
                     aria-label={saved ? t('card.unsave') : t('card.save')}
                 >
-                    <span className="led" aria-hidden />
+                    {tuner ? (
+                        <span className="led" aria-hidden />
+                    ) : (
+                        <StarIcon size={16} strokeWidth={2} filled={saved} />
+                    )}
                     {saved ? t('key.saved') : t('key.save')}
                 </button>
             )}

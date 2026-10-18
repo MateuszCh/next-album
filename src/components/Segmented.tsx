@@ -21,6 +21,7 @@ interface Props<T extends string> {
     describedBy?: string;
     /** Tabs: id prefix linking each tab to its panel (`<prefix>-<value>`). */
     panelIdPrefix?: string;
+    className?: string;
 }
 
 /**
@@ -37,6 +38,7 @@ export function Segmented<T extends string>({
     disabled = false,
     describedBy,
     panelIdPrefix,
+    className = '',
 }: Props<T>) {
     const refs = useRef<(HTMLButtonElement | null)[]>([]);
     const enabled = options.filter((o) => !o.disabled);
@@ -53,7 +55,7 @@ export function Segmented<T extends string>({
 
     return (
         <div
-            className={`seg${compact ? ' seg--compact' : ''}`}
+            className={`seg${compact ? ' seg--compact' : ''} ${className}`}
             role={kind === 'tabs' ? 'tablist' : 'radiogroup'}
             aria-label={label}
             aria-describedby={describedBy}

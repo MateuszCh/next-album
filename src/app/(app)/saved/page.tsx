@@ -7,7 +7,11 @@ import { StarIcon } from '@/components/Icons';
 import { TilesSkeleton } from '@/components/Skeleton';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
-import { countLabel } from '@/lib/i18n';
+import type { Skin } from '@/lib/skin';
+import { COUNT_NOUN, countLabel } from '@/lib/i18n';
+
+// Skins where saving is a labelled "Save" key rather than a star.
+const SAVE_IS_KEY: Skin[] = ['tuner', 'kaseta', 'rave'];
 
 /** Ulubione: the saved albums as a cover grid; a cover re-opens it on Losuj. */
 export default function SavedPage() {
@@ -22,7 +26,7 @@ export default function SavedPage() {
                 <h1 className="screen-title">{t('nav.saved')}</h1>
                 {saved.length > 0 && (
                     <span className="screen-count">
-                        {countLabel(t, lang, 'count.albums', saved.length)}
+                        {countLabel(t, lang, COUNT_NOUN[skin], saved.length)}
                     </span>
                 )}
             </header>
@@ -69,7 +73,7 @@ export default function SavedPage() {
             )}
             <p className="screen-hint">
                 <StarIcon size={20} strokeWidth={1.8} />
-                {t(skin === 'tuner' ? 'saved.hintTuner' : 'saved.hint')}
+                {t(SAVE_IS_KEY.includes(skin) ? 'saved.hintKey' : 'saved.hint')}
             </p>
         </div>
     );

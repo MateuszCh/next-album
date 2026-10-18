@@ -616,7 +616,7 @@ button {
 }
 
 .logo {
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 20px;
     letter-spacing: -0.02em;
@@ -693,7 +693,7 @@ button {
 
 .sheet__title {
     margin: 0;
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 20px;
     line-height: 1.2;
@@ -704,17 +704,34 @@ button {
     margin-top: auto;
 }
 
-/* Tuner faceplate: everything is a panel or a key on the same ground. */
-[data-theme='tuner'] .pick {
-    padding: 0 18px 24px;
-    gap: 16px;
+/* Every skin but Okładka lays Losuj out as one padded column on the page
+   ground: no header band, no full-bleed cover, panels and keys in a stack.
+   Each skin sets --pick-pad (side padding) and --pick-gap. Zero-specificity
+   (`:where`) so a skin's own rules override these. */
+:where(:root:not([data-theme^='okladka'])) .pick {
+    padding: 0 var(--pick-pad, 18px) 24px;
+    gap: var(--pick-gap, 16px);
 }
 
-[data-theme='tuner'] .pick-head {
+:where(:root:not([data-theme^='okladka'])) .pick-head {
     padding: 0;
     background: none;
 }
 
+:where(:root:not([data-theme^='okladka'])) .pick-error,
+:where(:root:not([data-theme^='okladka'])) .pick-credits,
+:where(:root:not([data-theme^='okladka'])) .pick-cta,
+:where(:root:not([data-theme^='okladka'])) .listen {
+    margin: 0;
+    padding: 0;
+}
+
+:where(:root:not([data-theme^='okladka'])) .sheet {
+    flex-grow: 0;
+    margin-top: 0;
+}
+
+/* Tuner faceplate: everything is a panel or a key on the same ground. */
 [data-theme='tuner'] .pick-head .seg {
     background: none;
 }
@@ -737,16 +754,6 @@ button {
     color: var(--accent-ink);
     font-size: 10px;
     letter-spacing: 0.04em;
-}
-
-[data-theme='tuner'] .pick-error,
-[data-theme='tuner'] .pick-credits {
-    margin: 0;
-    padding: 0;
-}
-
-[data-theme='tuner'] .pick-cta {
-    padding: 0;
 }
 
 .tun-keys {
@@ -792,7 +799,7 @@ button {
     outline-offset: 2px;
 }
 
-.tun-panel {
+.pick-plate {
     padding: 14px 16px 12px;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius);
@@ -816,6 +823,12 @@ button {
 .sk-album--cover {
     background: var(--bg);
     color: var(--text);
+}
+
+/* The cover and its badge: the badge sits beside the art (not clipped by it),
+   so a skin can also place it outside the cover. */
+.sk-album__frame {
+    position: relative;
 }
 
 .sk-album--cover .sk-album__art {
@@ -859,9 +872,14 @@ button {
     gap: 6px;
 }
 
+/* The other cover skins sit in Losuj's padded column. */
+:where(:root:not([data-theme^='okladka'])) .sk-album--cover .sk-album__body {
+    padding: 0;
+}
+
 .sk-album--cover .sk-album__title {
     margin: 0;
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 40px;
     line-height: 0.98;
@@ -1015,9 +1033,9 @@ button {
     color: var(--tuner-display-dim);
 }
 
-/* ---------- NextButton: round play (Okładka) / hardware key (Tuner) ---------- */
+/* ---------- NextButton: `.sk-next--<skin>` (round play in Okładka, a key in Tuner) ---------- */
 
-.sk-next--play {
+.sk-next--okladka {
     padding: 22px 24px 0;
     display: flex;
     flex-direction: column;
@@ -1099,15 +1117,15 @@ button {
     text-align: center;
 }
 
-.sk-next--key {
+.sk-next--tuner .sk-next__row {
+    display: block;
+}
+
+.sk-next--tuner .sk-next__main {
     width: 100%;
     height: var(--next-key);
     margin-bottom: 5px;
-    flex-shrink: 0;
-    border: none;
     border-radius: var(--radius);
-    background: var(--accent);
-    color: var(--accent-contrast);
     box-shadow: var(--shadow-key);
     font-family: var(--font-tuner-mono);
     font-weight: 700;
@@ -1118,31 +1136,19 @@ button {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    cursor: pointer;
     transition:
         background 0.15s ease,
         transform 0.05s ease,
         box-shadow 0.05s ease;
 }
 
-.sk-next--key:hover:not(:disabled) {
-    background: var(--accent-hover);
-}
-
-.sk-next--key:active:not(:disabled) {
+.sk-next--tuner .sk-next__main:active:not(:disabled) {
     transform: translateY(3px);
     box-shadow: 0 2px 0 var(--tuner-key-depth);
 }
 
-.sk-next--key:disabled {
-    opacity: 0.55;
-    box-shadow: none;
-    cursor: progress;
-}
-
 .sk-next__main:focus-visible,
-.sk-next__side:focus-visible,
-.sk-next--key:focus-visible {
+.sk-next__side:focus-visible {
     outline: 2px solid var(--accent-ink);
     outline-offset: 3px;
 }
@@ -1482,7 +1488,7 @@ button {
 }
 
 /* Tuner: genre presets as a grid of keys with LEDs, the tiles as knobs. */
-.tun-filters {
+.pick-filters {
     scroll-margin-top: 12px;
 }
 
@@ -1634,7 +1640,7 @@ button {
 
 .screen-title {
     margin: 0;
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 40px;
     line-height: 1;
@@ -1801,6 +1807,10 @@ button {
 .thumb-placeholder {
     color: var(--text-dim);
     font-size: 1.2rem;
+}
+
+.row__num {
+    display: none;
 }
 
 .row__meta {
@@ -2109,7 +2119,7 @@ button {
     color: var(--accent-contrast);
     display: grid;
     place-items: center;
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 26px;
 }
@@ -2128,7 +2138,7 @@ button {
 }
 
 .profile__name {
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 800;
     font-size: 22px;
     overflow-wrap: anywhere;
@@ -2148,7 +2158,7 @@ button {
 
 .login-card__title {
     margin: 0;
-    font-family: var(--font-okladka-display);
+    font-family: var(--font-display);
     font-weight: 700;
     font-size: 20px;
 }
@@ -2447,40 +2457,40 @@ button {
     place-items: center;
 }
 
-.sk-nav--pill {
+.sk-nav--okladka {
     padding-top: 0;
     padding-bottom: calc(12px + var(--safe-bottom));
 }
 
-.sk-nav--pill a {
+.sk-nav--okladka a {
     font-size: 11px;
     font-weight: 600;
 }
 
-.sk-nav--pill .sk-nav__icon {
+.sk-nav--okladka .sk-nav__icon {
     width: 56px;
     height: 32px;
     border-radius: var(--radius-pill);
     transition: background 0.15s ease;
 }
 
-.sk-nav--pill a[aria-current='page'] {
+.sk-nav--okladka a[aria-current='page'] {
     color: var(--text);
     font-weight: 700;
 }
 
-.sk-nav--pill a[aria-current='page'] .sk-nav__icon {
+.sk-nav--okladka a[aria-current='page'] .sk-nav__icon {
     background: var(--accent);
     color: var(--accent-contrast);
 }
 
-.sk-nav--key {
+.sk-nav--tuner {
     padding-top: 8px;
     padding-bottom: calc(14px + var(--safe-bottom));
     gap: 6px;
 }
 
-.sk-nav--key a {
+.sk-nav--tuner a {
     border: 1px solid transparent;
     border-radius: var(--radius-key);
     font-family: var(--font-tuner-mono);
@@ -2490,13 +2500,13 @@ button {
     text-transform: uppercase;
 }
 
-.sk-nav--key a[aria-current='page'] {
+.sk-nav--tuner a[aria-current='page'] {
     border-color: var(--accent);
     background: var(--bg-elev-2);
     color: var(--accent-ink);
 }
 
-.sk-nav--key a[aria-current='page'] .sk-nav__label {
+.sk-nav--tuner a[aria-current='page'] .sk-nav__label {
     color: var(--text);
 }
 
@@ -2507,11 +2517,11 @@ button {
     font-variant-numeric: tabular-nums;
 }
 
-.sk-nav--pill .sk-nav__icon {
+.sk-nav--okladka .sk-nav__icon {
     position: relative;
 }
 
-.sk-nav--pill .sk-nav__count {
+.sk-nav--okladka .sk-nav__count {
     position: absolute;
     top: -5px;
     left: 35px;
@@ -2530,11 +2540,11 @@ button {
     text-align: center;
 }
 
-.sk-nav--key a {
+.sk-nav--tuner a {
     position: relative;
 }
 
-.sk-nav--key .sk-nav__count {
+.sk-nav--tuner .sk-nav__count {
     position: absolute;
     top: 5px;
     right: 5px;
@@ -2599,7 +2609,8 @@ button {
 /* The thumbnail carries its own data-theme, so it always shows its skin. */
 .sk-style__thumb {
     position: relative;
-    height: 112px;
+    display: block;
+    height: 84px;
     border-radius: 10px;
     overflow: hidden;
     background: var(--bg);
@@ -2637,19 +2648,19 @@ button {
 }
 
 .sk-thumb-okladka span:nth-child(1) {
-    height: 11px;
+    height: 9px;
     background: var(--surface-header);
 }
 
 .sk-thumb-okladka span:nth-child(2) {
-    height: 58px;
+    height: 44px;
     background: var(--bg-elev-2);
 }
 
 .sk-thumb-okladka span:nth-child(3) {
     width: 50%;
-    height: 6px;
-    margin: 6px 8px 0;
+    height: 5px;
+    margin: 5px 7px 0;
     border-radius: 3px;
     background: var(--text);
 }
@@ -2657,47 +2668,46 @@ button {
 .sk-thumb-okladka span:nth-child(4) {
     position: absolute;
     left: 50%;
-    bottom: 7px;
-    width: 20px;
-    height: 20px;
-    margin-left: -10px;
+    bottom: 6px;
+    width: 16px;
+    height: 16px;
+    margin-left: -8px;
     border-radius: 50%;
     background: var(--accent);
 }
 
 .sk-thumb-tuner {
     height: 100%;
-    padding: 8px;
+    padding: 7px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .sk-thumb-tuner span:nth-child(1) {
-    height: 42px;
+    height: 32px;
     border-radius: 6px;
     background-color: var(--tuner-display);
     box-shadow: inset 0 0 0 1px var(--border-subtle);
-    background-image:
-        linear-gradient(var(--tuner-display-text), var(--tuner-display-text)),
+    background-image: linear-gradient(var(--tuner-display-text), var(--tuner-display-text)),
         linear-gradient(var(--tuner-display-label), var(--tuner-display-label));
     background-size:
         60% 5px,
         40% 4px;
     background-position:
-        6px 8px,
-        6px 18px;
+        5px 6px,
+        5px 14px;
     background-repeat: no-repeat;
 }
 
 .sk-thumb-tuner span:nth-child(2) {
-    height: 16px;
+    height: 13px;
     border-radius: 4px;
     background: var(--tuner-scale);
 }
 
 .sk-thumb-tuner span:nth-child(3) {
-    height: 20px;
+    height: 16px;
     border-radius: 6px;
     background: var(--accent);
 }

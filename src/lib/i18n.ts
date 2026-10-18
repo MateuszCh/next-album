@@ -5,6 +5,7 @@
 import { getGenre } from '@/lib/recommend/genres';
 import { getDecade } from '@/lib/recommend/decades';
 import { getCountry } from '@/lib/recommend/countries';
+import type { Skin } from '@/lib/skin';
 
 export type Lang = 'pl' | 'en';
 
@@ -119,9 +120,15 @@ const en: Dict = {
     'draw.settings': 'Pick settings',
     'draw.filters': 'Search filters',
     'draw.empty': 'Your album will show up here',
+    'draw.mood': 'Pick mood',
+    'draw.howNew': 'How much new?',
+    'balance.tape': 'Balance · tape',
+    'balance.eq': 'Balance · EQ',
     'listen.aria': 'Listen on',
     'key.save': 'Save',
     'key.saved': 'Saved',
+    'key.balance': 'Balance',
+    'key.filters': 'Filters',
     'lcd.aria': 'Now picked',
     'lcd.mode': 'Mode: {mode}',
     'lcd.noSignal': 'No signal',
@@ -131,6 +138,12 @@ const en: Dict = {
     // Plural forms are picked with Intl.PluralRules (`countLabel`).
     'count.albums.one': '{count} album',
     'count.albums.other': '{count} albums',
+    'count.tapes.one': '{count} tape',
+    'count.tapes.other': '{count} tapes',
+    'count.tracks.one': '{count} track',
+    'count.tracks.other': '{count} tracks',
+    'count.records.one': '{count} record',
+    'count.records.other': '{count} records',
 
     'history.filter.aria': 'History filter',
     'history.filter.all': 'All',
@@ -138,11 +151,13 @@ const en: Dict = {
     'history.filter.search': 'Search',
     'history.empty': 'Albums you pick will show up here.',
     'history.emptyFilter': 'Nothing here for this filter yet.',
+    'history.sideA': 'side A',
+    'history.sideB': 'side B',
 
     'saved.remove': 'Remove from saved: {name}',
     'saved.empty': 'No saved albums yet.',
     'saved.hint': 'Save albums with the star on the Pick screen or in History.',
-    'saved.hintTuner': 'Save albums with the Save key on the Pick screen or in History.',
+    'saved.hintKey': 'Save albums with the Save key on the Pick screen or in History.',
 
     'account.tab.aria': 'Account',
     'account.tab.profile': 'Profile',
@@ -168,15 +183,20 @@ const en: Dict = {
     'settings.dark': 'Dark',
     'settings.light': 'Light',
     'settings.language': 'Language',
-    'settings.tunerDarkOnly':
-        'Tuner only comes in dark. The light theme is available in the Cover style.',
+    'settings.modesNote':
+        'Only Cover comes in dark and light. The other styles have one fixed theme, so the switch is off for them.',
     'settings.guestNote': 'Works without logging in — we remember your choice in this browser.',
     'settings.about': 'About',
 
     'style.okladka': 'Cover',
-    'style.okladkaNote': 'Dark or light',
     'style.tuner': 'Tuner',
-    'style.tunerNote': 'Dark only',
+    'style.kaseta': 'Cassette',
+    'style.rave': 'Rave',
+    'style.guma': 'Bubblegum',
+    'style.ambient': 'Ambient',
+    'style.modes.both': 'Dark or light',
+    'style.modes.dark': 'Dark only',
+    'style.modes.light': 'Light only',
 
     'lang.name.pl': 'Polski',
     'lang.name.en': 'English',
@@ -317,9 +337,15 @@ const pl: Dict = {
     'draw.settings': 'Ustawienia losowania',
     'draw.filters': 'Filtry wyszukiwania',
     'draw.empty': 'Tu pojawi się Twój album',
+    'draw.mood': 'Nastrój losowania',
+    'draw.howNew': 'Ile nowości?',
+    'balance.tape': 'Balans · taśma',
+    'balance.eq': 'Balans · EQ',
     'listen.aria': 'Słuchaj w',
     'key.save': 'Zapisz',
     'key.saved': 'Zapisano',
+    'key.balance': 'Balans',
+    'key.filters': 'Filtry',
     'lcd.aria': 'Teraz wylosowany',
     'lcd.mode': 'Tryb: {mode}',
     'lcd.noSignal': 'Brak sygnału',
@@ -330,6 +356,18 @@ const pl: Dict = {
     'count.albums.few': '{count} albumy',
     'count.albums.many': '{count} albumów',
     'count.albums.other': '{count} albumu',
+    'count.tapes.one': '{count} kaseta',
+    'count.tapes.few': '{count} kasety',
+    'count.tapes.many': '{count} kaset',
+    'count.tapes.other': '{count} kasety',
+    'count.tracks.one': '{count} track',
+    'count.tracks.few': '{count} tracki',
+    'count.tracks.many': '{count} tracków',
+    'count.tracks.other': '{count} tracka',
+    'count.records.one': '{count} płyta',
+    'count.records.few': '{count} płyty',
+    'count.records.many': '{count} płyt',
+    'count.records.other': '{count} płyty',
 
     'history.filter.aria': 'Filtr historii',
     'history.filter.all': 'Wszystkie',
@@ -337,11 +375,13 @@ const pl: Dict = {
     'history.filter.search': 'Szukaj',
     'history.empty': 'Tu pojawią się wylosowane albumy.',
     'history.emptyFilter': 'W tym filtrze nic jeszcze nie ma.',
+    'history.sideA': 'strona A',
+    'history.sideB': 'strona B',
 
     'saved.remove': 'Usuń z ulubionych: {name}',
     'saved.empty': 'Nie masz jeszcze zapisanych albumów.',
     'saved.hint': 'Zapisuj albumy gwiazdką na ekranie Losuj albo w Historii.',
-    'saved.hintTuner': 'Zapisuj albumy klawiszem Zapisz na ekranie Losuj albo w Historii.',
+    'saved.hintKey': 'Zapisuj albumy klawiszem Zapisz na ekranie Losuj albo w Historii.',
 
     'account.tab.aria': 'Konto',
     'account.tab.profile': 'Profil',
@@ -367,15 +407,20 @@ const pl: Dict = {
     'settings.dark': 'Ciemny',
     'settings.light': 'Jasny',
     'settings.language': 'Język',
-    'settings.tunerDarkOnly':
-        'Tuner ma tylko wersję ciemną. Jasny motyw jest dostępny w stylu Okładka.',
+    'settings.modesNote':
+        'Ciemny i jasny motyw ma tylko Okładka. Pozostałe style mają jeden stały motyw — przełącznik jest wtedy wyłączony.',
     'settings.guestNote': 'Działa bez logowania — wybór zapamiętujemy w tej przeglądarce.',
     'settings.about': 'O aplikacji',
 
     'style.okladka': 'Okładka',
-    'style.okladkaNote': 'Ciemny lub jasny',
     'style.tuner': 'Tuner',
-    'style.tunerNote': 'Tylko ciemny',
+    'style.kaseta': 'Kaseta',
+    'style.rave': 'Rave',
+    'style.guma': 'Guma',
+    'style.ambient': 'Ambient',
+    'style.modes.both': 'Ciemny lub jasny',
+    'style.modes.dark': 'Tylko ciemny',
+    'style.modes.light': 'Tylko jasny',
 
     'lang.name.pl': 'Polski',
     'lang.name.en': 'English',
@@ -431,6 +476,16 @@ export function translate(lang: Lang, key: string, params?: TranslateParams): st
         name in params ? String(params[name]) : `{${name}}`,
     );
 }
+
+/** The noun a skin counts albums in on Historia / Ulubione ("12 kaset", "12 płyt"). */
+export const COUNT_NOUN: Record<Skin, string> = {
+    okladka: 'count.albums',
+    tuner: 'count.albums',
+    kaseta: 'count.tapes',
+    rave: 'count.tracks',
+    ambient: 'count.albums',
+    guma: 'count.records',
+};
 
 /**
  * A count with the right plural form, e.g. `countLabel(t, lang, 'count.albums', 5)`

@@ -3,6 +3,7 @@
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
 import type { AppMode } from '@/components/AppDataProvider';
+import { albumLayout } from '@/lib/skin';
 
 /**
  * Placeholders shown while the user's data (last album, history, saved) loads.
@@ -16,22 +17,27 @@ function Bar({ width }: { width: string }) {
     return <span className="skel" style={{ width }} />;
 }
 
-/** The album slot: a shimmering cover (Okładka) or an LCD that is still tuning (Tuner). */
+/**
+ * The album slot, in the skin's album layout: a shimmering cover, or a panel
+ * (Tuner's LCD still tuning, Kaseta's card) with the cover beside the title.
+ */
 export function AlbumSkeleton({ appMode }: { appMode: AppMode }) {
     const { t } = useI18n();
     const { skin } = useTheme();
 
-    if (skin === 'tuner') {
+    if (albumLayout(skin) === 'display') {
         return (
             <article
                 className="sk-album--display skel-wrap"
                 aria-busy="true"
                 aria-label={t('loading')}
             >
-                <div className="sk-album__status">
-                    <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
-                    <span className="skel-tuning">◌ {t('lcd.tuning')}</span>
-                </div>
+                {skin === 'tuner' && (
+                    <div className="sk-album__status">
+                        <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
+                        <span className="skel-tuning">◌ {t('lcd.tuning')}</span>
+                    </div>
+                )}
                 <div className="sk-album__row">
                     <div className="sk-album__art">
                         <div className="cover-loader" />
@@ -56,8 +62,10 @@ export function AlbumSkeleton({ appMode }: { appMode: AppMode }) {
 
     return (
         <article className="sk-album--cover skel-wrap" aria-busy="true" aria-label={t('loading')}>
-            <div className="sk-album__art">
-                <div className="cover-loader" />
+            <div className="sk-album__frame">
+                <div className="sk-album__art">
+                    <div className="cover-loader" />
+                </div>
             </div>
             <div className="sk-album__body">
                 <p className="sk-album__title">
@@ -76,7 +84,7 @@ export function AlbumSkeleton({ appMode }: { appMode: AppMode }) {
     );
 }
 
-/** Losuj: where the listen links (Okładka) or the Save + links keys (Tuner) will be. */
+/** Losuj: where the listen links (or Tuner's Save + links keys) will be. */
 export function LinksSkeleton() {
     const { skin } = useTheme();
 

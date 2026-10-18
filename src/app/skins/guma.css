@@ -1,0 +1,656 @@
+/* ==========================================================================
+   Guma — bubblegum pop, light only: a pink ground, plum outlines (2.5px) with
+   hard drop shadows, pink / butter / lilac / mint fills, a tilted cover with a
+   butter "Odkrycie!" sticker and sparkles, the reason in a speech bubble, a
+   chunky slider and a floating pill bar. Fredoka throughout. Only what differs
+   from the shared styles is here.
+   ========================================================================== */
+
+[data-theme='guma'] {
+    --bg: #fff1f7;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #ffe1ee;
+    --surface-header: #fff1f7;
+    --text: #3b1236;
+    --text-dim: #7a4a72;
+    --accent: #ff5fa2;
+    --accent-ink: #c2185b;
+    --accent-hover: #ff79b2;
+    --accent-contrast: #3b1236;
+    --accent-soft: #ffe1ee;
+    --border: #3b1236;
+    --border-subtle: #f3c6dc;
+    --track: #ffe1ee;
+    --error-bg: #fff3b0;
+    --error-border: #3b1236;
+    --error-text: #3b1236;
+    --badge-bg: #ffffff;
+    --badge-text: #3b1236;
+    --skeleton-base: #ffe1ee;
+    --skeleton-highlight: #fff7fb;
+    --shadow: 0 5px 0 #3b1236;
+    --shadow-play: 0 5px 0 #3b1236;
+    --shadow-key: none;
+    --radius-card: 22px;
+    --guma-line: 2.5px solid #3b1236;
+    --guma-drop: 0 4px 0 #3b1236;
+    --guma-butter: #ffe36e;
+    --guma-lilac: #c9b6ff;
+    --guma-mint: #a8f0d4;
+    --guma-tint-1: #ffc2dc;
+    --guma-tint-2: #e4dbff;
+    --guma-tint-3: #fff3b0;
+    --guma-tint-4: #d2f7e8;
+    --font-sans: var(--font-guma);
+    --font-display: var(--font-guma);
+    --pick-pad: 22px;
+    --pick-gap: 18px;
+    /* The floating bar plus its gap above the screen edge. */
+    --bottom-nav: 104px;
+    color-scheme: light;
+}
+
+/* ---------- Logo ---------- */
+
+.logo--guma {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-guma);
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: 0;
+}
+
+.logo__spark {
+    fill: var(--accent);
+}
+
+[data-theme='guma'] .pick-head {
+    height: 64px;
+}
+
+/* ---------- Segmented: outlined pills; selected = plum (butter in the header) ---------- */
+
+[data-theme='guma'] .seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    background: none;
+}
+
+[data-theme='guma'] .seg__opt {
+    padding: 0 16px;
+    border: var(--guma-line);
+    background: var(--bg-elev);
+    color: var(--text);
+    font-weight: 500;
+    font-size: 14px;
+}
+
+[data-theme='guma'] .seg__opt[aria-selected='true'],
+[data-theme='guma'] .seg__opt[aria-checked='true'] {
+    background: var(--text);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+[data-theme='guma'] .pick-head .seg,
+[data-theme='guma'] .seg--compact {
+    gap: 2px;
+    padding: 3px;
+    border: var(--guma-line);
+    border-radius: var(--radius-pill);
+    background: var(--bg-elev);
+}
+
+[data-theme='guma'] .pick-head .seg__opt,
+[data-theme='guma'] .seg--compact .seg__opt {
+    min-height: 38px;
+    padding: 0 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+}
+
+[data-theme='guma'] .pick-head .seg__opt[aria-selected='true'],
+[data-theme='guma'] .seg--compact .seg__opt[aria-checked='true'] {
+    background: var(--guma-butter);
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* ---------- Album: the tilted cover, the sticker, the sparkles ---------- */
+
+[data-theme='guma'] .sk-album--cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    text-align: center;
+}
+
+[data-theme='guma'] .sk-album__frame {
+    width: 250px;
+    margin: 10px 0 14px;
+}
+
+[data-theme='guma'] .sk-album--cover .sk-album__art {
+    width: 250px;
+    height: 250px;
+    aspect-ratio: auto;
+    border: 3px solid var(--text);
+    border-radius: 30px;
+    background: var(--guma-lilac);
+    box-shadow: 8px 8px 0 var(--text);
+    transform: rotate(-2deg);
+}
+
+[data-theme='guma'] .sk-album--cover.sk-album--empty .sk-album__art {
+    background: var(--bg-elev);
+}
+
+[data-theme='guma'] .sk-album__badge {
+    top: -20px;
+    right: -24px;
+    left: auto;
+    width: 90px;
+    height: 90px;
+    padding: 6px;
+    border: 3px solid var(--text);
+    border-radius: 50%;
+    background: var(--guma-butter);
+    color: var(--text);
+    backdrop-filter: none;
+    display: grid;
+    place-items: center;
+    transform: rotate(12deg);
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.1;
+    text-align: center;
+}
+
+[data-theme='guma'] .sk-album__badge span::after {
+    content: '!';
+}
+
+.sk-album__spark {
+    position: absolute;
+    pointer-events: none;
+}
+
+.sk-album__spark--big {
+    left: -26px;
+    bottom: 26px;
+    fill: var(--guma-mint);
+    stroke: var(--text);
+    stroke-width: 1.5px;
+}
+
+.sk-album__spark--small {
+    left: -10px;
+    bottom: 2px;
+    fill: var(--accent);
+}
+
+[data-theme='guma'] .sk-album--cover .sk-album__body {
+    align-items: center;
+    gap: 10px;
+}
+
+[data-theme='guma'] .sk-album--cover .sk-album__title {
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+[data-theme='guma'] .sk-album--cover .sk-album__meta {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* The reason in a speech bubble pointing up at the title. */
+[data-theme='guma'] .sk-album--cover .sk-album__reason {
+    position: relative;
+    margin: 10px 0 0;
+    padding: 12px 16px;
+    border: var(--guma-line);
+    border-radius: 18px;
+    background: var(--bg-elev);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.4;
+    text-align: left;
+}
+
+[data-theme='guma'] .sk-album--cover .sk-album__reason::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: 30px;
+    width: 14px;
+    height: 14px;
+    border-top: var(--guma-line);
+    border-left: var(--guma-line);
+    background: var(--bg-elev);
+    transform: rotate(45deg);
+}
+
+/* ---------- Next: butter save, pink pill, mint filters ---------- */
+
+.sk-next--guma .sk-next__row {
+    gap: 10px;
+}
+
+.sk-next--guma .sk-next__side,
+.sk-next--guma .sk-next__main {
+    border: var(--guma-line);
+    color: var(--text);
+    transition:
+        transform 0.05s ease,
+        box-shadow 0.05s ease,
+        background 0.15s ease;
+}
+
+.sk-next--guma .sk-next__side {
+    width: 58px;
+    height: 58px;
+    flex-shrink: 0;
+    background: var(--guma-mint);
+    box-shadow: var(--guma-drop);
+}
+
+.sk-next--guma .sk-next__save {
+    background: var(--guma-butter);
+}
+
+.sk-next--guma .sk-next__side[aria-pressed='true'] {
+    border-color: var(--text);
+    background: var(--accent);
+    color: var(--text);
+}
+
+.sk-next--guma .sk-next__main {
+    flex: 1 1 auto;
+    width: auto;
+    height: 58px;
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.sk-next--guma .sk-next__main:active:not(:disabled),
+.sk-next--guma .sk-next__side:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 var(--text);
+}
+
+/* ---------- Listen: outlined white pills ---------- */
+
+[data-theme='guma'] .listen {
+    justify-content: flex-start;
+}
+
+[data-theme='guma'] .listen__link {
+    border: 2px solid var(--text);
+    background: var(--bg-elev);
+    font-weight: 600;
+}
+
+[data-theme='guma'] .listen__link svg {
+    color: inherit;
+}
+
+/* ---------- Settings: a white card with a hard shadow ---------- */
+
+[data-theme='guma'] .sheet {
+    gap: 14px;
+    padding: 18px;
+    border: var(--guma-line);
+    border-radius: 24px;
+    background: var(--bg-elev);
+    box-shadow: 0 5px 0 var(--text);
+}
+
+[data-theme='guma'] .sheet__title {
+    font-weight: 700;
+    font-size: 19px;
+    letter-spacing: 0;
+}
+
+/* The chunky slider: an outlined track, a butter thumb; labels under it. */
+.sk-balance--guma .sk-balance__labels {
+    order: 2;
+}
+
+.sk-balance--guma input[type='range'] {
+    height: 16px;
+    box-sizing: border-box;
+    border: var(--guma-line);
+}
+
+.sk-balance--guma input[type='range']::-webkit-slider-thumb {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--text);
+    background: var(--guma-butter);
+    box-shadow: 0 3px 0 var(--text);
+}
+
+.sk-balance--guma input[type='range']::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border: 3px solid var(--text);
+    background: var(--guma-butter);
+}
+
+[data-theme='guma'] .chip,
+[data-theme='guma'] .chip[aria-pressed='true'] {
+    border: var(--guma-line);
+}
+
+[data-theme='guma'] .chip {
+    background: var(--bg-elev);
+    font-weight: 500;
+}
+
+[data-theme='guma'] .chip[aria-pressed='true'] {
+    background: var(--accent);
+}
+
+[data-theme='guma'] .chip--more {
+    border-style: dashed;
+    color: var(--text-dim);
+}
+
+[data-theme='guma'] .picker {
+    border: var(--guma-line);
+    background: var(--bg-elev);
+}
+
+[data-theme='guma'] .picker[data-active] {
+    background: var(--guma-butter);
+}
+
+[data-theme='guma'] .picker-menu {
+    border: var(--guma-line);
+    box-shadow: var(--guma-drop);
+}
+
+/* ---------- Bottom nav: a floating pill bar, a butter pill on the tab ---------- */
+
+.sk-nav--guma {
+    left: max(14px, calc((100% - var(--app-max)) / 2 + 14px));
+    right: max(14px, calc((100% - var(--app-max)) / 2 + 14px));
+    bottom: calc(16px + var(--safe-bottom));
+    height: 70px;
+    padding: 0 6px;
+    border: var(--guma-line);
+    border-radius: var(--radius-pill);
+    background: var(--bg-elev);
+    box-shadow: 0 5px 0 var(--text);
+}
+
+.sk-nav--guma a {
+    gap: 2px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.sk-nav--guma .sk-nav__icon {
+    position: relative;
+    width: 52px;
+    height: 30px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-pill);
+}
+
+.sk-nav--guma a[aria-current='page'] {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.sk-nav--guma a[aria-current='page'] .sk-nav__icon {
+    border-color: var(--text);
+    background: var(--guma-butter);
+}
+
+.sk-nav--guma .sk-nav__count {
+    position: absolute;
+    top: -9px;
+    right: -2px;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border: 2px solid var(--text);
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 15px;
+    text-align: center;
+}
+
+/* ---------- Tab screens ---------- */
+
+[data-theme='guma'] .screen-head {
+    align-items: center;
+    padding: 28px 2px 0;
+}
+
+[data-theme='guma'] .screen-title {
+    font-weight: 700;
+    font-size: 42px;
+    letter-spacing: 0;
+}
+
+[data-theme='guma'] .screen-count {
+    padding: 4px 14px;
+    border: var(--guma-line);
+    border-radius: var(--radius-pill);
+    background: var(--guma-butter);
+    color: var(--text);
+    font-weight: 700;
+    font-size: 15px;
+}
+
+/* History: candy-tinted rows with a hard shadow. */
+[data-theme='guma'] .rows {
+    gap: 12px;
+    padding-right: 4px;
+}
+
+[data-theme='guma'] .row {
+    gap: 10px;
+    padding: 10px 10px 10px 12px;
+    border: var(--guma-line);
+    border-radius: 22px;
+    background: var(--guma-tint-1);
+    box-shadow: var(--guma-drop);
+}
+
+[data-theme='guma'] .row:nth-child(4n + 2),
+[data-theme='guma'] .tile:nth-child(4n + 2) .tile__open {
+    background: var(--guma-tint-2);
+}
+
+[data-theme='guma'] .row:nth-child(4n + 3),
+[data-theme='guma'] .tile:nth-child(4n + 3) .tile__open {
+    background: var(--guma-tint-3);
+}
+
+[data-theme='guma'] .row:nth-child(4n + 4),
+[data-theme='guma'] .tile:nth-child(4n + 4) .tile__open {
+    background: var(--guma-tint-4);
+}
+
+[data-theme='guma'] .row__pick {
+    min-height: 52px;
+    gap: 12px;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+}
+
+[data-theme='guma'] .row__cover {
+    width: 52px;
+    height: 52px;
+    border: 2px solid var(--text);
+    border-radius: 14px;
+    background: var(--guma-lilac);
+}
+
+[data-theme='guma'] .row__name,
+[data-theme='guma'] .tile__name {
+    font-weight: 600;
+    font-size: 17px;
+}
+
+[data-theme='guma'] .row__mode {
+    text-transform: lowercase;
+}
+
+[data-theme='guma'] .row__action,
+[data-theme='guma'] .tile__remove {
+    border: var(--guma-line);
+    background: var(--bg-elev);
+    color: var(--text);
+    backdrop-filter: none;
+}
+
+[data-theme='guma'] .row__action[aria-pressed='true'] {
+    border-color: var(--text);
+    background: var(--accent);
+    color: var(--text);
+}
+
+/* Saved: tinted cards like the history rows. */
+[data-theme='guma'] .tiles {
+    gap: 14px 12px;
+}
+
+[data-theme='guma'] .tile__open {
+    padding: 8px;
+    border: var(--guma-line);
+    border-radius: 22px;
+    background: var(--guma-tint-1);
+    box-shadow: var(--guma-drop);
+}
+
+[data-theme='guma'] .tile__art {
+    border: 2px solid var(--text);
+    border-radius: 14px;
+    background: var(--guma-lilac);
+}
+
+[data-theme='guma'] .tile__remove {
+    top: 14px;
+    right: 14px;
+}
+
+[data-theme='guma'] .screen-hint {
+    border: var(--guma-line);
+    background: var(--bg-elev);
+    box-shadow: var(--guma-drop);
+}
+
+/* ---------- Account ---------- */
+
+[data-theme='guma'] .panel,
+[data-theme='guma'] .profile {
+    border: var(--guma-line);
+    box-shadow: var(--guma-drop);
+}
+
+[data-theme='guma'] .profile {
+    background: var(--guma-tint-2);
+}
+
+[data-theme='guma'] .panel--feature {
+    background: var(--guma-tint-3);
+}
+
+[data-theme='guma'] .profile__avatar {
+    border: var(--guma-line);
+}
+
+[data-theme='guma'] .status-pill {
+    border: 2px solid var(--text);
+    background: var(--guma-mint);
+    color: var(--text);
+}
+
+[data-theme='guma'] .sk-btn:not(.sk-btn--quiet) {
+    border: var(--guma-line);
+    box-shadow: var(--guma-drop);
+}
+
+[data-theme='guma'] .sk-btn--outline {
+    color: var(--text);
+}
+
+[data-theme='guma'] .sk-btn--inverse {
+    color: #ffffff;
+}
+
+[data-theme='guma'] .sk-input {
+    border: var(--guma-line);
+    background: var(--bg-elev);
+}
+
+[data-theme='guma'] .error {
+    border-width: 2.5px;
+}
+
+/* ---------- Style picker ---------- */
+
+.sk-style__name--guma {
+    font-family: var(--font-guma);
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.sk-thumb-guma {
+    height: 100%;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.sk-thumb-guma .sk-thumb__cover {
+    height: 38px;
+    width: 62%;
+    border: 2px solid var(--text);
+    border-radius: 9px;
+    background: var(--guma-lilac);
+    box-shadow: 3px 3px 0 var(--text);
+}
+
+.sk-thumb-guma .sk-thumb__cta {
+    height: 16px;
+    border: 2px solid var(--text);
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    box-shadow: 0 2px 0 var(--text);
+}
+
+.sk-thumb-guma .sk-thumb__sticker {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--text);
+    border-radius: 50%;
+    background: var(--guma-butter);
+}

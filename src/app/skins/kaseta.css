@@ -1,0 +1,779 @@
+/* ==========================================================================
+   Kaseta — a 70s cassette, dark only: navy ground, a cream cassette card, an
+   orange / amber / red stripe trio, tactile grey keys with a pressed-in edge.
+   Archivo (condensed, capitals) for labels, Permanent Marker for album titles.
+   Only what differs from the shared styles is here.
+   ========================================================================== */
+
+[data-theme='kaseta'] {
+    --bg: #1b2238;
+    --bg-elev: #242c46;
+    --bg-elev-2: #2f3856;
+    --surface-header: #1b2238;
+    --text: #f1ece0;
+    --text-dim: #aab1c7;
+    --accent: #f26b3a;
+    --accent-ink: #f26b3a;
+    --accent-hover: #ff7d4f;
+    --accent-contrast: #1b2238;
+    --accent-soft: rgba(242, 107, 58, 0.16);
+    --border: #7681a8;
+    --border-subtle: #3d4766;
+    --track: #7681a8;
+    --error-bg: rgba(255, 138, 84, 0.12);
+    --error-border: rgba(255, 138, 84, 0.4);
+    --error-text: #ffcaa6;
+    --badge-bg: rgba(0, 0, 0, 0.6);
+    --badge-text: #ffffff;
+    --skeleton-base: #2f3856;
+    --skeleton-highlight: #3d4766;
+    --shadow: none;
+    --shadow-play: none;
+    --shadow-key: none;
+    --radius-pill: 6px;
+    --radius-card: 12px;
+    --radius-sheet: 12px;
+    --radius-key: 6px;
+    --kaseta-card: #efe6cf;
+    --kaseta-card-hover: #f6efdc;
+    --kaseta-card-text: #1b2238;
+    --kaseta-card-dim: #3b4057;
+    --kaseta-rule: #a59b80;
+    --kaseta-key: #d9d4c7;
+    --kaseta-key-depth: #9b968a;
+    --kaseta-accent-depth: #b8481f;
+    --kaseta-orange: #f26b3a;
+    --kaseta-amber: #f5b83d;
+    --kaseta-red: #e2454f;
+    --kaseta-reel: #5a4636;
+    --kaseta-stripes: linear-gradient(
+        to right,
+        var(--kaseta-orange) 0 33.33%,
+        var(--kaseta-amber) 33.33% 66.66%,
+        var(--kaseta-red) 66.66% 100%
+    );
+    --font-sans: var(--font-kaseta);
+    --font-display: var(--font-kaseta);
+    --pick-pad: 18px;
+    --pick-gap: 16px;
+    color-scheme: dark;
+}
+
+/* ---------- Stripes, labels, logo ---------- */
+
+[data-theme='kaseta'] .stripes {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+[data-theme='kaseta'] .stripes span {
+    height: 3px;
+    background: var(--kaseta-orange);
+}
+
+[data-theme='kaseta'] .stripes span:nth-child(2) {
+    background: var(--kaseta-amber);
+}
+
+[data-theme='kaseta'] .stripes span:nth-child(3) {
+    background: var(--kaseta-red);
+}
+
+.logo--kaseta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-kaseta);
+    font-stretch: 75%;
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.stripes--logo {
+    width: 18px;
+}
+
+/* Small condensed capitals: panel labels, keys, tags. */
+[data-theme='kaseta'] .sk-balance__title,
+[data-theme='kaseta'] .filter-label,
+[data-theme='kaseta'] .section-label,
+[data-theme='kaseta'] .picker__label {
+    font-stretch: 80%;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+/* ---------- Segmented: a recessed track with a cream selected slot ---------- */
+
+[data-theme='kaseta'] .seg,
+[data-theme='kaseta'] .pick-head .seg {
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-elev);
+}
+
+[data-theme='kaseta'] .seg__opt {
+    min-height: 40px;
+    padding: 0 10px;
+    border-radius: 5px;
+    font-stretch: 80%;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .seg--compact .seg__opt {
+    min-height: 38px;
+}
+
+[data-theme='kaseta'] .seg__opt[aria-selected='true'],
+[data-theme='kaseta'] .seg__opt[aria-checked='true'] {
+    background: var(--text);
+    color: var(--bg);
+    font-weight: 800;
+}
+
+/* Side A / side B of the tape: the two modes. */
+[data-theme='kaseta'] .seg--modes .seg__opt:nth-child(1)::before,
+[data-theme='kaseta'] .seg--history .seg__opt:nth-child(2)::before {
+    content: 'A · ' / '';
+}
+
+[data-theme='kaseta'] .seg--modes .seg__opt:nth-child(2)::before,
+[data-theme='kaseta'] .seg--history .seg__opt:nth-child(3)::before {
+    content: 'B · ' / '';
+}
+
+/* ---------- Album: the cassette card ---------- */
+
+[data-theme='kaseta'] .sk-album--display {
+    gap: 12px;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    background: var(--kaseta-card);
+    color: var(--kaseta-card-text);
+    font-family: var(--font-kaseta);
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__row {
+    align-items: flex-start;
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__art {
+    width: 124px;
+    height: 124px;
+    border-radius: 4px;
+    background: var(--bg);
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__art--empty {
+    border: 2px dashed var(--kaseta-rule);
+    background: none;
+    color: var(--kaseta-card-dim);
+}
+
+[data-theme='kaseta'] .sk-album__stripes {
+    align-self: stretch;
+}
+
+[data-theme='kaseta'] .sk-album__stripes span {
+    height: 4px;
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__title {
+    margin-top: 4px;
+    font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
+    font-weight: 400;
+    font-stretch: normal;
+    font-size: 30px;
+    line-height: 1;
+    text-transform: none;
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__meta {
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+    color: var(--kaseta-card-dim);
+}
+
+[data-theme='kaseta'] .sk-album__tag {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 3px 8px;
+    border: 1.5px solid currentColor;
+    border-radius: 4px;
+    font-stretch: 80%;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .sk-album--display .sk-album__reason {
+    padding-top: 10px;
+    border-top: 1.5px dashed var(--kaseta-rule);
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--kaseta-card-dim);
+}
+
+/* ---------- Next: three tactile keys — Save, Next Album, Balance/Filters ---------- */
+
+.sk-next--kaseta .sk-next__row {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr) 70px;
+    gap: 8px;
+}
+
+.sk-next--kaseta .sk-next__main,
+.sk-next--kaseta .sk-next__side {
+    width: auto;
+    height: 64px;
+    border: none;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-kaseta);
+    text-transform: uppercase;
+    transition:
+        background 0.15s ease,
+        transform 0.05s ease,
+        box-shadow 0.05s ease;
+}
+
+.sk-next--kaseta .sk-next__side {
+    flex-direction: column;
+    gap: 2px;
+    background: var(--kaseta-key);
+    box-shadow: inset 0 -5px 0 var(--kaseta-key-depth);
+    color: var(--kaseta-card-text);
+    font-stretch: 80%;
+    font-weight: 800;
+    font-size: 10px;
+}
+
+.sk-next--kaseta .sk-next__side[aria-pressed='true'] {
+    background: var(--accent);
+    box-shadow: inset 0 -5px 0 var(--kaseta-accent-depth);
+    color: var(--accent-contrast);
+}
+
+.sk-next--kaseta .sk-next__main {
+    gap: 8px;
+    padding: 0 8px;
+    background: var(--accent);
+    box-shadow: inset 0 -5px 0 var(--kaseta-accent-depth);
+    color: var(--accent-contrast);
+    font-stretch: 75%;
+    font-weight: 900;
+    font-size: clamp(15px, 4.8vw, 19px);
+    white-space: nowrap;
+}
+
+.sk-next--kaseta .sk-next__main svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.sk-next--kaseta .sk-next__main:active:not(:disabled),
+.sk-next--kaseta .sk-next__side:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: inset 0 -2px 0 var(--kaseta-key-depth);
+}
+
+.sk-next--kaseta .sk-next__main:active:not(:disabled) {
+    box-shadow: inset 0 -2px 0 var(--kaseta-accent-depth);
+}
+
+/* ---------- Listen links: outlined tags ---------- */
+
+[data-theme='kaseta'] .listen {
+    justify-content: flex-start;
+}
+
+[data-theme='kaseta'] .listen__link {
+    padding: 0 14px;
+    border-color: var(--border);
+    background: transparent;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+[data-theme='kaseta'] .listen__link svg {
+    color: inherit;
+}
+
+/* ---------- Balance: the tape deck ---------- */
+
+[data-theme='kaseta'] .pick-plate {
+    gap: 12px;
+    padding: 14px 16px 16px;
+    border: none;
+    border-radius: 12px;
+    background: var(--bg-elev);
+}
+
+.sk-balance--kaseta {
+    gap: 12px;
+}
+
+.sk-balance__deck {
+    position: relative;
+    height: 96px;
+    padding: 0 22px;
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    background: var(--bg-elev-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* The tape running between the reels. */
+.sk-balance__tape {
+    position: absolute;
+    top: 18px;
+    left: 56px;
+    right: 56px;
+    height: 2px;
+    background: var(--kaseta-reel);
+}
+
+/* A reel: tape wound on it (size = its share) around a cream hub. */
+.sk-balance__reel {
+    position: relative;
+    width: var(--reel);
+    height: var(--reel);
+    border-radius: 50%;
+    background: var(--kaseta-reel);
+    display: grid;
+    place-items: center;
+    transition:
+        width 0.2s ease,
+        height 0.2s ease;
+}
+
+.sk-balance__reel::after {
+    content: '';
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow: inset 0 0 0 6px var(--kaseta-key);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sk-balance__reel {
+        transition: none;
+    }
+}
+
+.sk-balance--kaseta .sk-balance__labels {
+    font-stretch: 80%;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+}
+
+.sk-balance--kaseta input[type='range'] {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+}
+
+.sk-balance--kaseta input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--text);
+    border-radius: 4px;
+    background: var(--accent);
+}
+
+.sk-balance--kaseta input[type='range']::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 3px solid var(--text);
+    border-radius: 4px;
+    background: var(--accent);
+}
+
+.sk-balance--kaseta input[type='range']::-moz-range-track {
+    background: transparent;
+}
+
+/* ---------- Filters ---------- */
+
+[data-theme='kaseta'] .chip {
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+[data-theme='kaseta'] .chip[aria-pressed='true'] {
+    font-weight: 800;
+}
+
+[data-theme='kaseta'] .chip--more {
+    border-style: dashed;
+    color: var(--text-dim);
+}
+
+[data-theme='kaseta'] .filters-reset {
+    font-stretch: 80%;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .picker,
+[data-theme='kaseta'] .picker-menu {
+    border-radius: 6px;
+}
+
+[data-theme='kaseta'] .picker {
+    border-color: var(--border-subtle);
+    background: var(--bg-elev);
+}
+
+[data-theme='kaseta'] .picker[data-active] {
+    border-color: var(--accent);
+}
+
+/* ---------- Bottom nav: the stripes on top, an orange underline ---------- */
+
+.sk-nav--kaseta {
+    padding-top: 4px;
+    padding-bottom: calc(10px + var(--safe-bottom));
+    border-top: none;
+}
+
+.sk-nav--kaseta::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--kaseta-stripes);
+}
+
+.sk-nav--kaseta a {
+    border-bottom: 3px solid transparent;
+    font-stretch: 80%;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sk-nav--kaseta a[aria-current='page'] {
+    border-bottom-color: var(--accent);
+    color: var(--accent);
+    font-weight: 800;
+}
+
+.sk-nav--kaseta a[aria-current='page'] .sk-nav__label {
+    color: var(--text);
+}
+
+.sk-nav--kaseta .sk-nav__icon {
+    position: relative;
+}
+
+.sk-nav--kaseta .sk-nav__count {
+    position: absolute;
+    top: -6px;
+    left: 14px;
+    min-width: 18px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: var(--kaseta-card);
+    color: var(--kaseta-card-text);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 16px;
+    text-align: center;
+}
+
+/* ---------- Tab screens ---------- */
+
+[data-theme='kaseta'] .screen {
+    gap: 16px;
+    padding: 0 18px 24px;
+}
+
+[data-theme='kaseta'] .screen-head {
+    align-items: flex-end;
+    padding: 26px 2px 0;
+}
+
+[data-theme='kaseta'] .screen-title {
+    font-stretch: 70%;
+    font-weight: 900;
+    font-size: 40px;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+/* Three short stripes above the page title. */
+[data-theme='kaseta'] .screen-title::before {
+    content: '';
+    display: block;
+    width: 90px;
+    height: 4px;
+    margin-bottom: 8px;
+    background: linear-gradient(
+        to right,
+        var(--kaseta-orange) 0 28px,
+        transparent 28px 31px,
+        var(--kaseta-amber) 31px 59px,
+        transparent 59px 62px,
+        var(--kaseta-red) 62px 90px
+    );
+}
+
+[data-theme='kaseta'] .screen-count {
+    font-stretch: 80%;
+    font-weight: 700;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+/* History: cream tape labels with a coloured spine. */
+[data-theme='kaseta'] .rows {
+    gap: 8px;
+}
+
+[data-theme='kaseta'] .row {
+    align-items: stretch;
+    gap: 8px;
+}
+
+[data-theme='kaseta'] .row__pick {
+    min-height: 64px;
+    padding: 0 12px 0 0;
+    border-radius: 6px;
+    background: var(--kaseta-card);
+    color: var(--kaseta-card-text);
+    overflow: hidden;
+}
+
+[data-theme='kaseta'] .row__pick:hover {
+    background: var(--kaseta-card-hover);
+}
+
+[data-theme='kaseta'] .row__pick::before {
+    content: '';
+    align-self: stretch;
+    width: 8px;
+    flex-shrink: 0;
+    background: var(--kaseta-orange);
+}
+
+[data-theme='kaseta'] .row:nth-child(3n + 2) .row__pick::before {
+    background: var(--kaseta-amber);
+}
+
+[data-theme='kaseta'] .row:nth-child(3n + 3) .row__pick::before {
+    background: var(--kaseta-red);
+}
+
+[data-theme='kaseta'] .row__cover {
+    width: 46px;
+    height: 46px;
+    border-radius: 3px;
+    background: var(--bg);
+}
+
+[data-theme='kaseta'] .row__name,
+[data-theme='kaseta'] .tile__name {
+    font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 1.1;
+}
+
+[data-theme='kaseta'] .row__sub,
+[data-theme='kaseta'] .tile__sub {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--kaseta-card-dim);
+}
+
+[data-theme='kaseta'] .row__action,
+[data-theme='kaseta'] .tile__remove {
+    border: none;
+    border-radius: 6px;
+    background: var(--kaseta-key);
+    box-shadow: inset 0 -4px 0 var(--kaseta-key-depth);
+    color: var(--kaseta-card-text);
+}
+
+[data-theme='kaseta'] .row__action {
+    width: 52px;
+    height: auto;
+}
+
+[data-theme='kaseta'] .row__action[aria-pressed='true'] {
+    background: var(--accent);
+    box-shadow: inset 0 -4px 0 var(--kaseta-accent-depth);
+    color: var(--accent-contrast);
+}
+
+/* Saved: cream cassette cases. */
+[data-theme='kaseta'] .tiles {
+    gap: 10px;
+}
+
+[data-theme='kaseta'] .tile__open {
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--kaseta-card);
+    color: var(--kaseta-card-text);
+}
+
+[data-theme='kaseta'] .tile__art {
+    border-radius: 4px;
+    background: var(--bg);
+}
+
+[data-theme='kaseta'] .tile__remove {
+    top: 14px;
+    right: 14px;
+}
+
+[data-theme='kaseta'] .screen-hint {
+    border-radius: 12px;
+}
+
+/* ---------- Account ---------- */
+
+[data-theme='kaseta'] .profile {
+    border-radius: 12px;
+    background: var(--kaseta-card);
+    color: var(--kaseta-card-text);
+}
+
+[data-theme='kaseta'] .profile__avatar {
+    border-radius: 6px;
+}
+
+[data-theme='kaseta'] .profile__name {
+    font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
+    font-weight: 400;
+}
+
+[data-theme='kaseta'] .profile__via {
+    color: var(--kaseta-card-dim);
+}
+
+[data-theme='kaseta'] .panel--feature {
+    border-radius: 12px;
+    background: var(--bg-elev-2);
+}
+
+[data-theme='kaseta'] .login-card__title {
+    font-stretch: 75%;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .status-pill {
+    border-radius: 4px;
+    font-stretch: 80%;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .sk-btn {
+    font-stretch: 80%;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+[data-theme='kaseta'] .sk-btn--primary {
+    box-shadow: inset 0 -5px 0 var(--kaseta-accent-depth);
+}
+
+[data-theme='kaseta'] .sk-btn--inverse {
+    background: var(--kaseta-key);
+    box-shadow: inset 0 -5px 0 var(--kaseta-key-depth);
+    color: var(--kaseta-card-text);
+}
+
+[data-theme='kaseta'] .sk-input {
+    border-radius: 6px;
+    background: var(--bg);
+}
+
+/* ---------- Style picker ---------- */
+
+.sk-style__name--kaseta {
+    font-family: var(--font-kaseta);
+    font-stretch: 75%;
+    font-weight: 900;
+    font-size: 15px;
+    text-transform: uppercase;
+}
+
+.sk-thumb-kaseta {
+    height: 100%;
+    padding: 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sk-thumb-kaseta .sk-thumb__card {
+    height: 38px;
+    padding: 5px;
+    border-radius: 4px;
+    background: var(--kaseta-card);
+    display: flex;
+    gap: 5px;
+}
+
+.sk-thumb-kaseta .sk-thumb__cover {
+    width: 28px;
+    background: var(--bg);
+}
+
+.sk-thumb-kaseta .stripes {
+    flex: 1;
+}
+
+.sk-thumb-kaseta .sk-thumb__cta {
+    height: 22px;
+    border-radius: 4px;
+    background: var(--accent);
+    box-shadow: inset 0 -3px 0 var(--kaseta-accent-depth);
+}
+
+@media (max-width: 400px) {
+    .sk-next--kaseta .sk-next__row {
+        grid-template-columns: 64px minmax(0, 1fr) 64px;
+    }
+}
+
+@media (max-width: 380px) {
+    /* Keeps the logo and the A/B mode keys on one line. */
+    [data-theme='kaseta'] .seg--modes .seg__opt::before {
+        content: none;
+    }
+}

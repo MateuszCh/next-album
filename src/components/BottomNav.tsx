@@ -35,9 +35,12 @@ const ITEMS: {
 ];
 
 /**
- * The sticky four-tab menu: a coral pill marks the current tab in Okładka, a
- * lit key in Tuner. Historia and Ulubione carry their album count: a badge on
- * the icon in Okładka, an LCD window on the key in Tuner; an empty tab shows none.
+ * The sticky four-tab menu, styled per skin (`sk-nav--<skin>`): a coral pill
+ * (Okładka), a lit key (Tuner), an orange underline under the tape stripes
+ * (Kaseta), a skewed lime tag (Rave), a floating bar with a dot (Ambient) or
+ * with a butter pill (Guma). Historia and Ulubione carry their album count: an
+ * LCD window on the key in Tuner, a badge on the icon elsewhere; an empty tab
+ * shows none.
  */
 export function BottomNav() {
     const { t, lang } = useI18n();
@@ -48,10 +51,7 @@ export function BottomNav() {
     const counts: Record<Counted, number> = { history: history.length, saved: saved.length };
 
     return (
-        <nav
-            className={`sk-nav ${tuner ? 'sk-nav--key' : 'sk-nav--pill'}`}
-            aria-label={t('nav.aria')}
-        >
+        <nav className={`sk-nav sk-nav--${skin}`} aria-label={t('nav.aria')}>
             {ITEMS.map(({ href, label, icon, counted }) => {
                 const current = pathname === href;
                 // Only once the data has loaded (so a stale 0 never flashes), and never 0.
