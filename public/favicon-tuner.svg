@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Tuner skin: amber ring + play on the LCD black, a thin panel frame and a
+       red LED. layout.tsx links it for a saved Tuner skin; ThemeProvider
+       repoints the link on a live switch. -->
+  <rect width="32" height="32" rx="7" fill="#0d0c0a"/>
+  <rect x="0.75" y="0.75" width="30.5" height="30.5" rx="6.25" fill="none" stroke="#3a352d" stroke-width="1.5"/>
+  <circle cx="16" cy="16" r="9.5" fill="none" stroke="#ffb000" stroke-width="3"/>
+  <path d="M14 12v8l6.4-4z" fill="#ffb000"/>
+  <circle cx="26.25" cy="5.75" r="2" fill="#e03e2e"/>
+</svg>

@@ -1,30 +1,22 @@
-/**
- * Brand mark + wordmark. The SVG glyph is a stylised disc / "play" — a record
- * spinning with a play triangle at its centre.
- */
-export function LogoMark({ className }: { className?: string }) {
-    return (
-        <svg
-            className={className}
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
-            <path d="M10.5 9.2v5.6l4.4-2.8-4.4-2.8Z" fill="currentColor" />
-        </svg>
-    );
-}
+'use client';
 
+import { useTheme } from '@/components/ThemeProvider';
+
+/** The wordmark: `next·album` in Okładka, `NEXT ALBUM [HI-FI]` on the Tuner faceplate. */
 export function Logo() {
+    const { skin } = useTheme();
+
+    if (skin === 'tuner') {
+        return (
+            <span className="logo logo--tuner">
+                Next Album <span className="logo__badge">Hi-Fi</span>
+            </span>
+        );
+    }
+
     return (
         <span className="logo">
-            <span className="logo-word">
-                <b>next</b>
-                <span>·</span>
-                <b>album</b>
-            </span>
+            next<span className="logo__dot">·</span>album
         </span>
     );
 }

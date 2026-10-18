@@ -1,45 +1,102 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-
-export type Theme = 'light' | 'dark';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useState,
+} from 'react';
+import {
+    MODE_COOKIE,
+    SKIN_COOKIE,
+    SKIN_ICONS,
+    parseMode,
+    themeFor,
+    type Mode,
+    type Skin,
+    type ThemeId,
+} from '@/lib/skin';
 
 interface ThemeContext {
-    theme: Theme;
-    setTheme: (theme: Theme) => void;
+    skin: Skin;
+    /** The stored dark/light preference (kept while Tuner overrides it). */
+    mode: Mode;
+    /** What `data-theme` on <html> is set to. */
+    theme: ThemeId;
+    setSkin: (skin: Skin) => void;
+    setMode: (mode: Mode) => void;
 }
 
 const Ctx = createContext<ThemeContext | null>(null);
 
+function writeCookie(name: string, value: string) {
+    document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
+}
+
+// The server HTML links the saved skin's favicon and Apple touch icon
+// (`layout.tsx`); a live switch repoints them until the next request does.
+function applyIcons(skin: Skin) {
+    const icons = SKIN_ICONS[skin];
+    document
+        .querySelectorAll<HTMLLinkElement>('link[rel~="icon"], link[rel="apple-touch-icon"]')
+        .forEach((link) => {
+            const href = link.rel === 'apple-touch-icon' ? icons.apple : icons.icon;
+            if (link.getAttribute('href') !== href) link.setAttribute('href', href);
+        });
+}
+
 export function ThemeProvider({
     children,
-    initialTheme,
+    initialSkin,
+    initialMode,
 }: {
     children: React.ReactNode;
-    initialTheme: Theme;
+    initialSkin: Skin;
+    initialMode: Mode;
 }) {
-    // Seed from the cookie the server already read, so SSR and the first client
-    // render show the saved theme with no flash.
-    const [theme, setThemeState] = useState<Theme>(initialTheme);
+    // Seed from the cookies the server already read, so SSR and the first client
+    // render show the saved skin with no flash.
+    const [skin, setSkinState] = useState<Skin>(initialSkin);
+    const [mode, setModeState] = useState<Mode>(initialMode);
+    const theme = themeFor(skin, mode);
 
-    const setTheme = useCallback((next: Theme) => {
-        setThemeState(next);
-        // Cookie so the server can render the right theme on the next request.
-        document.cookie = `theme=${next}; path=/; max-age=31536000; samesite=lax`;
-        document.documentElement.dataset.theme = next;
+    // Applied before paint, so the components switching variant and the tokens
+    // switching theme land in the same frame.
+    useLayoutEffect(() => {
+        document.documentElement.dataset.theme = theme;
+    }, [theme]);
+
+    useLayoutEffect(() => {
+        applyIcons(skin);
+    }, [skin]);
+
+    const setSkin = useCallback((next: Skin) => {
+        setSkinState(next);
+        // Cookie so the server can render the right skin on the next request.
+        writeCookie(SKIN_COOKIE, next);
     }, []);
 
-    // One-time migration for users whose preference is still only in localStorage
+    const setMode = useCallback((next: Mode) => {
+        setModeState(next);
+        writeCookie(MODE_COOKIE, next);
+    }, []);
+
+    // One-time migration for users whose mode is still only in localStorage
     // (and brand-new visitors with no cookie): adopt it and persist the cookie.
     useEffect(() => {
-        if (document.cookie.split('; ').some((c) => c.startsWith('theme='))) return;
-        const stored = window.localStorage.getItem('theme');
-        const resolved: Theme = stored === 'light' || stored === 'dark' ? stored : initialTheme;
-        if (resolved !== initialTheme) setTheme(resolved);
-        else document.cookie = `theme=${resolved}; path=/; max-age=31536000; samesite=lax`;
-    }, [initialTheme, setTheme]);
+        if (document.cookie.split('; ').some((c) => c.startsWith(`${MODE_COOKIE}=`))) return;
+        const resolved = parseMode(window.localStorage.getItem('theme')) ?? initialMode;
+        if (resolved !== initialMode) setMode(resolved);
+        else writeCookie(MODE_COOKIE, resolved);
+    }, [initialMode, setMode]);
 
-    const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme]);
+    const value = useMemo(
+        () => ({ skin, mode, theme, setSkin, setMode }),
+        [skin, mode, theme, setSkin, setMode],
+    );
 
     return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

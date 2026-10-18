@@ -8,8 +8,6 @@ import { getCountry } from '@/lib/recommend/countries';
 
 export type Lang = 'pl' | 'en';
 
-export const LANGS: Lang[] = ['en', 'pl'];
-
 export type TranslateParams = Record<string, string | number>;
 
 // Structured recommendation reason — translated on the client so switching the
@@ -42,12 +40,6 @@ const en: Dict = {
         "Connect your Last.fm account and we'll pick albums from your listening — your history and saved albums stay in this account.",
     'link.button': 'Connect Last.fm',
 
-    'loginPage.home': 'Back to the app',
-    'loginPage.back': 'Back',
-    'loginPage.skip': 'Continue without logging in',
-    'loginPage.skipNote':
-        'Album search works without an account — your history stays in this browser.',
-    'loginPage.title': 'Log in',
     'loginPage.subtitle':
         'An account keeps your history and saved albums across devices. Albums you rolled before logging in are added to it.',
     'loginPage.lastfm': 'With Last.fm',
@@ -57,6 +49,7 @@ const en: Dict = {
     'loginPage.tab.login': 'Log in',
     'loginPage.tab.register': 'Create account',
     'loginPage.emailPlaceholder': 'Email',
+    'loginPage.emailExample': 'you@example.com',
     'loginPage.passwordPlaceholder': 'Password',
     'loginPage.passwordHint': 'At least {min} characters.',
     'loginPage.submitLogin': 'Log in',
@@ -79,9 +72,13 @@ const en: Dict = {
     'filter.genre': 'Genre',
     'filter.decade': 'Decade',
     'filter.country': 'Country',
-    'genre.placeholder': 'Any genre',
-    'decade.placeholder': 'Any decade',
-    'country.placeholder': 'Any country',
+    'filter.presets': 'Presets',
+    'filter.more': 'More',
+    'filter.less': 'Less',
+    'filter.showAll': 'Show all genres',
+    'genre.any': 'any',
+    'decade.any': 'Any',
+    'country.any': 'Any',
 
     'country.british': 'United Kingdom',
     'country.american': 'United States',
@@ -99,9 +96,7 @@ const en: Dict = {
 
     'btn.next': 'Next Album',
     'btn.rolling': 'Rolling…',
-    'btn.lock': 'Lock',
     'btn.logout': 'Log out',
-    'btn.loginPage': 'Log in',
 
     'hint.default': 'Set the balance and click “Next Album”.',
     'hint.search': 'Set the filters (or leave them empty) and click “Next Album”.',
@@ -113,9 +108,78 @@ const en: Dict = {
     'card.save': 'Save album',
     'card.unsave': 'Remove from saved',
 
-    'history.title': 'Recent',
-    'history.saved': 'Saved',
-    'history.remove': 'Remove',
+    'nav.aria': 'Main menu',
+    'nav.pick': 'Pick',
+    'nav.history': 'History',
+    'nav.saved': 'Saved',
+    'nav.account': 'Account',
+
+    'mode.searchShort': 'Search',
+
+    'draw.settings': 'Pick settings',
+    'draw.filters': 'Search filters',
+    'draw.empty': 'Your album will show up here',
+    'listen.aria': 'Listen on',
+    'key.save': 'Save',
+    'key.saved': 'Saved',
+    'lcd.aria': 'Now picked',
+    'lcd.mode': 'Mode: {mode}',
+    'lcd.noSignal': 'No signal',
+    'lcd.tuning': 'Tuning…',
+    'tuner.tuning': 'Tuning',
+
+    // Plural forms are picked with Intl.PluralRules (`countLabel`).
+    'count.albums.one': '{count} album',
+    'count.albums.other': '{count} albums',
+
+    'history.filter.aria': 'History filter',
+    'history.filter.all': 'All',
+    'history.filter.lastfm': 'For me',
+    'history.filter.search': 'Search',
+    'history.empty': 'Albums you pick will show up here.',
+    'history.emptyFilter': 'Nothing here for this filter yet.',
+
+    'saved.remove': 'Remove from saved: {name}',
+    'saved.empty': 'No saved albums yet.',
+    'saved.hint': 'Save albums with the star on the Pick screen or in History.',
+    'saved.hintTuner': 'Save albums with the Save key on the Pick screen or in History.',
+
+    'account.tab.aria': 'Account',
+    'account.tab.profile': 'Profile',
+    'account.tab.login': 'Log in',
+    'account.tab.settings': 'Settings',
+    'account.viaLastfm': 'Logged in with Last.fm',
+    'account.viaEmail': 'Logged in with email',
+    'account.connections': 'Connections',
+    'account.lastfmActive': 'The “For me” mode is on',
+    'account.lastfmInactive': 'Connect it to unlock the “For me” mode',
+    'account.connected': 'Connected',
+    'account.connect': 'Connect',
+    'account.syncNote':
+        'Your history and saved albums are stored in your account — you’ll see them on every device.',
+    'account.lock': 'Lock the app',
+    'account.notLoggedIn': 'Not logged in',
+    'account.guestNote':
+        'Without an account the album search works as usual — your history and saved albums stay in this browser.',
+
+    'settings.style': 'App style',
+    'settings.looks': 'Look and language',
+    'settings.theme': 'Theme',
+    'settings.dark': 'Dark',
+    'settings.light': 'Light',
+    'settings.language': 'Language',
+    'settings.tunerDarkOnly':
+        'Tuner only comes in dark. The light theme is available in the Cover style.',
+    'settings.guestNote': 'Works without logging in — we remember your choice in this browser.',
+    'settings.about': 'About',
+
+    'style.okladka': 'Cover',
+    'style.okladkaNote': 'Dark or light',
+    'style.tuner': 'Tuner',
+    'style.tunerNote': 'Dark only',
+
+    'lang.name.pl': 'Polski',
+    'lang.name.en': 'English',
 
     'reason.rediscovery': 'From your favorites — played {playcount}×.',
     'reason.discovery': 'Something new — similar to “{seed}”, who you listen to.',
@@ -130,17 +194,13 @@ const en: Dict = {
     'reason.search': 'Matches {scope} — in {have} Discogs collections.',
     'reason.search_noscope': 'Popular on Discogs — in {have} collections.',
 
-    'theme.toLight': 'Switch to light theme',
-    'theme.toDark': 'Switch to dark theme',
-    'lang.aria': 'Language',
-
     'footer.poweredBy': 'Powered by AudioScrobbler / Last.fm',
     'footer.discogs': 'Album search data provided by Discogs',
 
     'gate.title': 'Access restricted',
     'gate.subtitle':
         'This app is available only to invited people. Enter the access password to continue.',
-    'gate.placeholder': 'Access password',
+    'gate.password': 'Access password',
     'gate.checking': 'Checking…',
     'gate.enter': 'Enter',
 
@@ -177,12 +237,6 @@ const pl: Dict = {
         'Połącz konto Last.fm, a my wybierzemy albumy na podstawie tego, czego słuchasz — historia i zapisane albumy zostają na tym koncie.',
     'link.button': 'Połącz z Last.fm',
 
-    'loginPage.home': 'Wróć do aplikacji',
-    'loginPage.back': 'Wróć',
-    'loginPage.skip': 'Kontynuuj bez logowania',
-    'loginPage.skipNote':
-        'Wyszukiwarka albumów działa bez konta — historia zostaje w tej przeglądarce.',
-    'loginPage.title': 'Zaloguj się',
     'loginPage.subtitle':
         'Konto przechowuje historię i zapisane albumy na wszystkich urządzeniach. Albumy wylosowane przed zalogowaniem zostaną do niego dodane.',
     'loginPage.lastfm': 'Przez Last.fm',
@@ -193,6 +247,7 @@ const pl: Dict = {
     'loginPage.tab.login': 'Logowanie',
     'loginPage.tab.register': 'Załóż konto',
     'loginPage.emailPlaceholder': 'E-mail',
+    'loginPage.emailExample': 'ty@przyklad.pl',
     'loginPage.passwordPlaceholder': 'Hasło',
     'loginPage.passwordHint': 'Co najmniej {min} znaków.',
     'loginPage.submitLogin': 'Zaloguj się',
@@ -215,9 +270,13 @@ const pl: Dict = {
     'filter.genre': 'Gatunek',
     'filter.decade': 'Dekada',
     'filter.country': 'Kraj',
-    'genre.placeholder': 'Dowolny gatunek',
-    'decade.placeholder': 'Dowolna dekada',
-    'country.placeholder': 'Dowolny kraj',
+    'filter.presets': 'Presety',
+    'filter.more': 'Więcej',
+    'filter.less': 'Mniej',
+    'filter.showAll': 'Pokaż wszystkie gatunki',
+    'genre.any': 'dowolny',
+    'decade.any': 'Dowolna',
+    'country.any': 'Dowolny',
 
     'country.british': 'Wielka Brytania',
     'country.american': 'USA',
@@ -235,9 +294,7 @@ const pl: Dict = {
 
     'btn.next': 'Następny album',
     'btn.rolling': 'Losuję…',
-    'btn.lock': 'Zablokuj',
     'btn.logout': 'Wyloguj',
-    'btn.loginPage': 'Zaloguj',
 
     'hint.default': 'Ustaw balans i kliknij „Następny album”.',
     'hint.search': 'Ustaw filtry (lub zostaw puste) i kliknij „Następny album”.',
@@ -249,9 +306,79 @@ const pl: Dict = {
     'card.save': 'Zapisz album',
     'card.unsave': 'Usuń z zapisanych',
 
-    'history.title': 'Ostatnie',
-    'history.saved': 'Zapisane',
-    'history.remove': 'Usuń',
+    'nav.aria': 'Menu główne',
+    'nav.pick': 'Losuj',
+    'nav.history': 'Historia',
+    'nav.saved': 'Ulubione',
+    'nav.account': 'Konto',
+
+    'mode.searchShort': 'Szukaj',
+
+    'draw.settings': 'Ustawienia losowania',
+    'draw.filters': 'Filtry wyszukiwania',
+    'draw.empty': 'Tu pojawi się Twój album',
+    'listen.aria': 'Słuchaj w',
+    'key.save': 'Zapisz',
+    'key.saved': 'Zapisano',
+    'lcd.aria': 'Teraz wylosowany',
+    'lcd.mode': 'Tryb: {mode}',
+    'lcd.noSignal': 'Brak sygnału',
+    'lcd.tuning': 'Strojenie…',
+    'tuner.tuning': 'Strojenie',
+
+    'count.albums.one': '{count} album',
+    'count.albums.few': '{count} albumy',
+    'count.albums.many': '{count} albumów',
+    'count.albums.other': '{count} albumu',
+
+    'history.filter.aria': 'Filtr historii',
+    'history.filter.all': 'Wszystkie',
+    'history.filter.lastfm': 'Dla mnie',
+    'history.filter.search': 'Szukaj',
+    'history.empty': 'Tu pojawią się wylosowane albumy.',
+    'history.emptyFilter': 'W tym filtrze nic jeszcze nie ma.',
+
+    'saved.remove': 'Usuń z ulubionych: {name}',
+    'saved.empty': 'Nie masz jeszcze zapisanych albumów.',
+    'saved.hint': 'Zapisuj albumy gwiazdką na ekranie Losuj albo w Historii.',
+    'saved.hintTuner': 'Zapisuj albumy klawiszem Zapisz na ekranie Losuj albo w Historii.',
+
+    'account.tab.aria': 'Konto',
+    'account.tab.profile': 'Profil',
+    'account.tab.login': 'Zaloguj się',
+    'account.tab.settings': 'Ustawienia',
+    'account.viaLastfm': 'Zalogowano przez Last.fm',
+    'account.viaEmail': 'Zalogowano przez e-mail',
+    'account.connections': 'Połączenia',
+    'account.lastfmActive': 'Tryb „Dla mnie” jest aktywny',
+    'account.lastfmInactive': 'Połącz, aby odblokować tryb „Dla mnie”',
+    'account.connected': 'Połączono',
+    'account.connect': 'Połącz',
+    'account.syncNote':
+        'Historia i ulubione są zapisane na koncie — zobaczysz je na każdym urządzeniu.',
+    'account.lock': 'Zablokuj aplikację',
+    'account.notLoggedIn': 'Niezalogowany',
+    'account.guestNote':
+        'Bez konta wyszukiwarka albumów działa normalnie — historia i ulubione zostają w tej przeglądarce.',
+
+    'settings.style': 'Styl aplikacji',
+    'settings.looks': 'Wygląd i język',
+    'settings.theme': 'Motyw',
+    'settings.dark': 'Ciemny',
+    'settings.light': 'Jasny',
+    'settings.language': 'Język',
+    'settings.tunerDarkOnly':
+        'Tuner ma tylko wersję ciemną. Jasny motyw jest dostępny w stylu Okładka.',
+    'settings.guestNote': 'Działa bez logowania — wybór zapamiętujemy w tej przeglądarce.',
+    'settings.about': 'O aplikacji',
+
+    'style.okladka': 'Okładka',
+    'style.okladkaNote': 'Ciemny lub jasny',
+    'style.tuner': 'Tuner',
+    'style.tunerNote': 'Tylko ciemny',
+
+    'lang.name.pl': 'Polski',
+    'lang.name.en': 'English',
 
     'reason.rediscovery': 'Z Twoich ulubionych — odtworzono {playcount}×.',
     'reason.discovery': 'Coś nowego — podobne do „{seed}”, którego słuchasz.',
@@ -266,17 +393,13 @@ const pl: Dict = {
     'reason.search': 'Pasuje do: {scope} — w kolekcjach {have} osób na Discogs.',
     'reason.search_noscope': 'Popularny na Discogs — w kolekcjach {have} osób.',
 
-    'theme.toLight': 'Przełącz na jasny motyw',
-    'theme.toDark': 'Przełącz na ciemny motyw',
-    'lang.aria': 'Język',
-
     'footer.poweredBy': 'Napędzane przez AudioScrobbler / Last.fm',
     'footer.discogs': 'Dane wyszukiwania albumów dostarcza Discogs',
 
     'gate.title': 'Dostęp ograniczony',
     'gate.subtitle':
         'Ta aplikacja jest dostępna tylko dla zaproszonych osób. Podaj hasło dostępu, aby kontynuować.',
-    'gate.placeholder': 'Hasło dostępu',
+    'gate.password': 'Hasło dostępu',
     'gate.checking': 'Sprawdzam…',
     'gate.enter': 'Wejdź',
 
@@ -307,6 +430,17 @@ export function translate(lang: Lang, key: string, params?: TranslateParams): st
     return template.replace(/\{(\w+)\}/g, (_, name) =>
         name in params ? String(params[name]) : `{${name}}`,
     );
+}
+
+/**
+ * A count with the right plural form, e.g. `countLabel(t, lang, 'count.albums', 5)`
+ * → "5 albumów". Looks up `<key>.<category>` (Intl.PluralRules: one / few /
+ * many / other), falling back to `<key>.other`.
+ */
+export function countLabel(t: TFn, lang: Lang, key: string, count: number): string {
+    const category = new Intl.PluralRules(lang).select(count);
+    const formKey = `${key}.${category}`;
+    return t(formKey in dictionaries[lang] ? formKey : `${key}.other`, { count });
 }
 
 export function detectLang(): Lang {
