@@ -10,7 +10,7 @@ import { Logo } from '@/components/Logo';
 import { ModeSlider } from '@/components/ModeSlider';
 import { NextButton } from '@/components/NextButton';
 import { SearchFilters } from '@/components/SearchFilters';
-import { AlbumSkeleton } from '@/components/Skeleton';
+import { AlbumSkeleton, LinksSkeleton } from '@/components/Skeleton';
 import { Segmented } from '@/components/Segmented';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
@@ -123,7 +123,8 @@ export default function PickPage() {
             <NextButton
                 onNext={roll}
                 loading={loading}
-                caption={album ? undefined : hint}
+                // While loading, the regular caption: most returning users have an album.
+                caption={album || !dataReady ? undefined : hint}
                 save={
                     album
                         ? { saved: isSaved(saved, album), onToggle: () => toggleSave(album) }
@@ -132,12 +133,14 @@ export default function PickPage() {
                 settings={{ label: settingsLabel, onClick: scrollToSettings }}
             />
             {errorBox}
-            {album && (
+            {album ? (
                 <ListenLinks
                     album={album}
                     saved={isSaved(saved, album)}
                     onToggleSave={() => toggleSave(album)}
                 />
+            ) : (
+                !dataReady && <LinksSkeleton />
             )}
             <section
                 ref={settingsRef}

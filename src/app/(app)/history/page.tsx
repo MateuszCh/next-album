@@ -41,9 +41,8 @@ export default function HistoryPage() {
                 )}
             </header>
 
-            {!dataReady ? (
-                <RowsSkeleton />
-            ) : history.length === 0 ? (
+            {/* While loading, the filter tabs stay and only the rows are placeholders. */}
+            {dataReady && history.length === 0 ? (
                 <p className="screen-empty">{t('history.empty')}</p>
             ) : (
                 <>
@@ -63,7 +62,9 @@ export default function HistoryPage() {
                         id={`history-${filter}`}
                         aria-labelledby={`history-tab-${filter}`}
                     >
-                        {list.length === 0 ? (
+                        {!dataReady ? (
+                            <RowsSkeleton />
+                        ) : list.length === 0 ? (
                             <p className="screen-empty">{t('history.emptyFilter')}</p>
                         ) : (
                             <ul className="rows">

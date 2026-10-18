@@ -29,52 +29,48 @@ export default function SavedPage() {
 
             {!dataReady ? (
                 <TilesSkeleton />
+            ) : saved.length === 0 ? (
+                <p className="screen-empty">{t('saved.empty')}</p>
             ) : (
-                <>
-                    {saved.length === 0 ? (
-                        <p className="screen-empty">{t('saved.empty')}</p>
-                    ) : (
-                        <ul className="tiles">
-                            {saved.map((album) => (
-                                <li key={itemKey(album)} className="tile">
-                                    <button
-                                        type="button"
-                                        className="tile__open"
-                                        onClick={() => {
-                                            showAlbum(album);
-                                            router.push('/');
-                                        }}
-                                    >
-                                        <span className="tile__art">
-                                            <AlbumThumb album={album} />
-                                        </span>
-                                        <span className="tile__meta">
-                                            <span className="tile__name">{album.name}</span>
-                                            <span className="tile__sub">
-                                                {album.artist}
-                                                {album.year ? ` · ${album.year}` : ''}
-                                            </span>
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="tile__remove"
-                                        onClick={() => removeSaved(album)}
-                                        aria-label={t('saved.remove', { name: album.name })}
-                                        title={t('saved.remove', { name: album.name })}
-                                    >
-                                        ×
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    <p className="screen-hint">
-                        <StarIcon size={20} strokeWidth={1.8} />
-                        {t(skin === 'tuner' ? 'saved.hintTuner' : 'saved.hint')}
-                    </p>
-                </>
+                <ul className="tiles">
+                    {saved.map((album) => (
+                        <li key={itemKey(album)} className="tile">
+                            <button
+                                type="button"
+                                className="tile__open"
+                                onClick={() => {
+                                    showAlbum(album);
+                                    router.push('/');
+                                }}
+                            >
+                                <span className="tile__art">
+                                    <AlbumThumb album={album} />
+                                </span>
+                                <span className="tile__meta">
+                                    <span className="tile__name">{album.name}</span>
+                                    <span className="tile__sub">
+                                        {album.artist}
+                                        {album.year ? ` · ${album.year}` : ''}
+                                    </span>
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                className="tile__remove"
+                                onClick={() => removeSaved(album)}
+                                aria-label={t('saved.remove', { name: album.name })}
+                                title={t('saved.remove', { name: album.name })}
+                            >
+                                ×
+                            </button>
+                        </li>
+                    ))}
+                </ul>
             )}
+            <p className="screen-hint">
+                <StarIcon size={20} strokeWidth={1.8} />
+                {t(skin === 'tuner' ? 'saved.hintTuner' : 'saved.hint')}
+            </p>
         </div>
     );
 }

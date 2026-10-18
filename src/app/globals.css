@@ -222,9 +222,13 @@ button {
 }
 
 /* Loading placeholders (Skeleton.tsx): the real layouts with shimmering bars.
+   A bar sits inside the element it stands in for (title, meta, …), so each
+   line keeps the real line height and nothing moves when the content arrives.
    They fade in after a beat, so a fast load never flashes them. */
 .skel-wrap {
     animation: skel-appear 0.25s ease 0.15s both;
+    /* Reuses the real controls' classes; their hover states don't apply. */
+    pointer-events: none;
 }
 
 @keyframes skel-appear {
@@ -236,14 +240,12 @@ button {
     }
 }
 
-.skel-lines {
-    gap: 10px;
-}
-
 .skel {
-    display: block;
-    height: 14px;
-    border-radius: 7px;
+    display: inline-block;
+    width: 100%;
+    height: 0.8em;
+    vertical-align: middle;
+    border-radius: 0.4em;
     background: linear-gradient(
         90deg,
         var(--skeleton-base) 0%,
@@ -254,51 +256,11 @@ button {
     animation: cover-shimmer 1.2s ease-in-out infinite;
 }
 
-.skel--title {
-    width: 72%;
-    height: 34px;
-    border-radius: 10px;
-}
-
-.skel--short {
-    width: 44%;
-    height: 16px;
-}
-
-.skel--text {
-    width: 88%;
-}
-
-.skel--name {
-    width: 70%;
-    height: 15px;
-}
-
-.skel--sub {
-    width: 45%;
-    height: 12px;
-}
-
 /* On the Tuner LCD: dim amber segments instead of a grey shimmer. */
-.skel--lcd {
+.sk-album--display .skel {
     background: var(--tuner-display-rule);
     border-radius: 2px;
     animation: skel-pulse 1.4s ease-in-out infinite;
-}
-
-.skel--lcd.skel--title {
-    width: 150px;
-    height: 22px;
-}
-
-.skel--lcd.skel--short {
-    width: 96px;
-    height: 11px;
-}
-
-.skel--lcd.skel--text {
-    width: 80%;
-    height: 10px;
 }
 
 .skel-tuning {
@@ -311,26 +273,34 @@ button {
     }
 }
 
+.skel-wrap .row__meta,
+.skel-wrap .sk-album__heading {
+    flex: 1;
+}
+
 .skel-wrap .row__cover,
 .skel-wrap .tile__art {
     position: relative;
 }
 
-.row__pick--skel {
-    cursor: default;
+/* Okładka listen links: pills the widths of the real three. */
+.skel--pill {
+    width: 103px;
+    height: var(--touch-min);
+    border-radius: var(--radius-pill);
 }
 
-.row__pick--skel .row__meta {
-    flex: 1;
+.skel--pill:nth-child(2) {
+    width: 155px;
 }
 
-.row__pick--skel:hover {
-    background: var(--bg-elev);
+.skel--pill:nth-child(3) {
+    width: 107px;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .skel,
-    .skel--lcd,
+    .sk-album--display .skel,
     .skel-tuning {
         animation: none;
     }
