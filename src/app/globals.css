@@ -2500,6 +2500,59 @@ button {
     color: var(--text);
 }
 
+/* Album counts on Historia / Ulubione: a badge on the icon's corner (Okładka),
+   a small LCD window in the key's corner (Tuner). */
+.sk-nav__count {
+    pointer-events: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.sk-nav--pill .sk-nav__icon {
+    position: relative;
+}
+
+.sk-nav--pill .sk-nav__count {
+    position: absolute;
+    top: -5px;
+    left: 35px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: var(--radius-pill);
+    background: var(--text);
+    color: var(--bg);
+    /* Rings the badge off the bar and the coral pill beneath it. */
+    box-shadow: 0 0 0 2px var(--bg-elev);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+.sk-nav--key a {
+    position: relative;
+}
+
+.sk-nav--key .sk-nav__count {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 1px 4px;
+    border: 1px solid var(--tuner-display-rule);
+    border-radius: 3px;
+    background: var(--tuner-display);
+    color: var(--tuner-display-text);
+    font-size: 9px;
+    line-height: 12px;
+    letter-spacing: 0.04em;
+}
+
+.sk-nav--key .sk-nav__count--empty {
+    color: var(--tuner-display-label);
+    opacity: 0.7;
+}
+
 /* ---------- StylePicker ---------- */
 
 .sk-style {
