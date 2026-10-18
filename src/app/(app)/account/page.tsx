@@ -11,9 +11,15 @@ import { StylePicker } from '@/components/StylePicker';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
 import type { Lang } from '@/lib/i18n';
-import { skinHasLight, type Mode } from '@/lib/skin';
+import { SKIN_MODES, modeFor, type Mode } from '@/lib/skin';
 
 type Tab = 'account' | 'settings';
+
+// The sub-tab last chosen, kept in this module's memory: it survives leaving
+// Konto for another tab (the page unmounts) and resets on a reload. Only
+// written from the click handler, so the server render always starts at
+// 'account' and hydration matches.
+let rememberedTab: Tab = 'account';
 
 const LANG_ORDER: Lang[] = ['pl', 'en'];
 
@@ -24,7 +30,11 @@ const LANG_ORDER: Lang[] = ['pl', 'en'];
 export default function AccountPage() {
     const { t } = useI18n();
     const { me } = useAppData();
-    const [tab, setTab] = useState<Tab>('account');
+    const [tab, setTabState] = useState<Tab>(() => rememberedTab);
+    const setTab = (next: Tab) => {
+        rememberedTab = next;
+        setTabState(next);
+    };
     const loggedIn = me.loggedIn;
 
     return (
@@ -181,7 +191,7 @@ function Settings({ loggedIn }: { loggedIn: boolean }) {
     const { t, lang, setLang } = useI18n();
     const { skin, mode, setMode } = useTheme();
     const noteId = useId();
-    const hasLight = skinHasLight(skin);
+    const modes = SKIN_MODES[skin];
     const tuner = skin === 'tuner';
 
     return (
@@ -200,21 +210,21 @@ function Settings({ loggedIn }: { loggedIn: boolean }) {
                             kind="radio"
                             compact
                             label={t('settings.theme')}
-                            options={[
-                                { value: 'dark', label: t('settings.dark') },
-                                { value: 'light', label: t('settings.light'), disabled: !hasLight },
-                            ]}
-                            // Tuner is dark only; the stored mode comes back with Okładka.
-                            value={hasLight ? mode : 'dark'}
+                            options={(['dark', 'light'] as Mode[]).map((m) => ({
+                                value: m,
+                                label: t(`settings.${m}`),
+                                disabled: !modes.includes(m),
+                            }))}
+                            // A one-mode skin shows its mode; the stored one comes back
+                            // with Okładka.
+                            value={modeFor(skin, mode)}
                             onChange={setMode}
-                            describedBy={hasLight ? undefined : noteId}
+                            describedBy={noteId}
                         />
                     </div>
-                    {!hasLight && (
-                        <p className="set-row__note set-row__note--block" id={noteId}>
-                            {t('settings.tunerDarkOnly')}
-                        </p>
-                    )}
+                    <p className="set-row__note set-row__note--block" id={noteId}>
+                        {t('settings.modesNote')}
+                    </p>
                     <div className="set-row">
                         <span className="set-row__title">{t('settings.language')}</span>
                         <Segmented<Lang>

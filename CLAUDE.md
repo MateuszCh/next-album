@@ -101,7 +101,7 @@ renders the right mode; a legacy localStorage `appMode` is migrated once):
 
 Logging in is optional (Konto → Zaloguj się at `/account`: Last.fm, or email +
 password; `/login` redirects there). See "Auth & access control". The UI comes in
-two user-selectable skins — see "UI: skins, tabs and theming".
+six user-selectable skins — see "UI: skins, tabs and theming".
 
 **All Last.fm communication and request signing are server-only** — the
 `shared_secret` never reaches the browser, and the Last.fm session key isn't
@@ -285,33 +285,50 @@ a refetch. Counts with plural forms ("12 albumów") go through `countLabel`
 ### UI: skins, tabs and theming
 
 The UI is a phone-first column (`--app-max` 560px) with a fixed bottom nav, in
-one of two **skins** the user picks in Konto → Ustawienia. The look comes from
+one of six **skins** the user picks in Konto → Ustawienia. The look comes from
 the Next Album design system (Design System artifact
 https://claude.ai/artifact/2kUR2FZqPfrVT5x2sPmrN8 — tokens.json and the Skins
-components are the source of truth for colours, type and sizes).
+components are the source of truth for Okładka and Tuner) and the design canvas
+(https://claude.ai/artifact/Jw5foCPJ8CMYB9DFQMhb4q, "4 nowe motywy" / "Kolejne
+4 motywy") for Kaseta, Rave, Ambient and Guma, of which only Losuj and Historia
+were designed; their other screens reuse each skin's tokens.
 
-- **Themes.** `data-theme` on `<html>` is one of `okladka-dark`,
-  `okladka-light` (Okładka: cover-first, coral `#ff7a59`) or `tuner` (hi-fi
-  hardware, amber `#ffb000` LCD, dark only). It is derived by `themeFor()` in
-  `src/lib/skin.ts` from two cookies (1y): `skin` (`okladka` | `tuner`, default
-  `okladka`) and `theme` (the mode, `dark` | `light`, default `dark`). Tuner
-  ignores the mode (Ustawienia disables "Jasny"), and switching back to Okładka
-  restores the stored mode. `layout.tsx` reads both cookies so SSR renders the
+- **Skins** (`SKINS` in `src/lib/skin.ts`): Okładka (cover-first, coral
+  `#ff7a59`, dark or light), Tuner (hi-fi hardware, amber LCD), Kaseta (70s
+  cassette: navy, cream card, orange/amber/red stripes, tactile keys), Rave
+  (acid: black, lime + pink, square and skewed) — dark only — and Ambient
+  (warm paper, terracotta `#a9573a`, round cover, serif) and Guma (bubblegum:
+  pink, plum outlines with hard shadows, stickers) — light only (`SKIN_MODES`).
+- **Themes.** `data-theme` on `<html>` is `okladka-dark`, `okladka-light` or
+  the skin's id (`tuner`, `kaseta`, `rave`, `ambient`, `guma`). It is derived
+  by `themeFor()` from two cookies (1y): `skin` (default `okladka`) and `theme`
+  (the mode, `dark` | `light`, default `dark`). A one-mode skin ignores the
+  mode (Ustawienia disables the other option, with a note), and switching back
+  to Okładka restores the stored mode (`modeFor`). `layout.tsx` reads both cookies so SSR renders the
   right theme with no flash; `ThemeProvider` exposes `skin`, `mode`, `theme`,
   `setSkin`, `setMode`, writes the cookies and sets `data-theme` in a layout
   effect (a legacy localStorage `theme` is migrated to the cookie once).
-- **Tokens and styles** live in `src/app/globals.css`: one token block per
-  theme (`okladka-dark` is also the `:root` fallback), then theme-independent
-  shape/size tokens (`--radius-*`, `--play-button`, `--next-key`,
-  `--bottom-nav`, `--touch-min`, …), then component styles. Tuner differences
-  are rules scoped with `[data-theme='tuner']`; the Tuner LED (`.led`) is hidden
-  in Okładka.
+- **Tokens and styles.** `src/app/globals.css` holds the Okładka and Tuner
+  token blocks (`okladka-dark` is also the `:root` fallback), the
+  theme-independent shape/size tokens (`--radius-*`, `--play-button`,
+  `--next-key`, `--bottom-nav`, `--touch-min`, …) and the shared component
+  styles, written for Okładka, with Tuner differences scoped by
+  `[data-theme='tuner']`. Each newer skin has its own file in `src/app/skins/`
+  (`kaseta.css`, `rave.css`, `ambient.css`, `guma.css`, imported by
+  `layout.tsx` after `globals.css`): its token block (including the radius
+  tokens — Rave's are 0 — and `--pick-pad` / `--pick-gap` / `--bottom-nav`)
+  plus only the rules its mockups change, scoped by its `data-theme` or by
+  per-skin component classes (`sk-next--<skin>`, `sk-nav--<skin>`,
+  `sk-balance--<skin>`). Every skin but Okładka lays Losuj out as one padded
+  column (a zero-specificity `:where(...)` rule in `globals.css`, so the skin
+  files win). The Tuner LED (`.led`) only shows in Tuner.
 - **Fonts** (`next/font` in `layout.tsx`): Bricolage Grotesque + DM Sans for
-  Okładka (preloaded), Martian Mono (with the `wdth` axis for the condensed
-  `font-stretch: 85%` titles) + Instrument Sans for Tuner (`preload: false`).
-  They are exposed as `--font-okladka-display/-sans` and
-  `--font-tuner-mono/-sans`, and each theme maps them onto `--font-display` /
-  `--font-sans`.
+  Okładka (the only preloaded pair); Martian Mono (`wdth` axis) + Instrument
+  Sans for Tuner; Archivo (`wdth` axis, condensed capitals) + Permanent Marker
+  (album titles, Latin only) for Kaseta; Unbounded + Manrope for Rave; Fraunces
+  (with italics) + Nunito Sans for Ambient; Fredoka for Guma. A font is only
+  fetched once a skin uses it. They are exposed as `--font-<skin>-…`, and each
+  theme maps its pair onto `--font-display` / `--font-sans`.
 - **Routes.** The tabs are the route group `src/app/(app)/`, whose layout wraps
   them in `AppDataProvider` and renders `BottomNav`: Losuj (`/`), Historia
   (`/history`), Ulubione (`/saved`), Konto (`/account` — Profil | Ustawienia
@@ -319,13 +336,20 @@ components are the source of truth for colours, type and sizes).
   `StylePicker`, Motyw, Język and the data credits). `/gate` stays outside the
   group (no nav); `/login` redirects to `/account`.
 - **Skin-variant components** pick their rendering from `useTheme().skin`,
-  never per screen: `AlbumCard` (full-width cover / LCD readout, plus
-  `AlbumEmpty`), `NextButton` (round play with save + settings / full-width
-  key), `ModeSlider` (slider / tuning scale with a needle), `BottomNav` (pill /
-  lit key), `ListenLinks` (pill links / a key row with Save), `SearchFilters`
-  (genre chips / preset keys collapsed to "+ N", decade and country tiles /
-  knobs that unfold a multi-select list) and `Logo`. `Segmented` (tabs/radios)
-  and `StylePicker` (live thumbnails that carry their own `data-theme`) are
+  never per screen, and keep one DOM per variant so CSS does the rest:
+  `AlbumCard` (`albumLayout()`: a full-width cover with the badge beside it —
+  Okładka, Rave, Ambient's round cover, Guma's sticker — or a panel with the
+  cover beside the title — Tuner's LCD, Kaseta's cassette card; plus
+  `AlbumEmpty` and the skeleton), `NextButton` (a `PARTS` table per skin: round
+  or labelled save/settings beside the button, its icon, the caption),
+  `ModeSlider` (slider; Tuner's scale; Kaseta's tape reels and Rave's EQ bars
+  drawn from the value), `ListenLinks` (Save leads the row in Tuner and Rave),
+  `BottomNav` (`sk-nav--<skin>`), `SearchFilters`, `Logo`. On Losuj, Okładka,
+  Ambient and Guma hold the controls in a titled sheet/card, the others in an
+  untitled plate. Historia numbers its rows (shown in Rave), Kaseta names the
+  mode as a tape side, and the count noun differs per skin (`COUNT_NOUN` in
+  `i18n.ts`: albumy / kasety / tracki / płyty). `Segmented` (tabs/radios) and
+  `StylePicker` (six live thumbnails that carry their own `data-theme`) are
   shared.
 - **Icons follow the skin.** `generateMetadata` in `layout.tsx` links the saved
   skin's favicon and Apple touch icon from the `skin` cookie (`SKIN_ICONS` in
@@ -333,7 +357,9 @@ components are the source of truth for colours, type and sizes).
   touch icon it reads when a home-screen shortcut is added. Favicons are
   `public/favicon-okladka.svg` / `public/favicon-tuner.svg`; the touch icons are
   opaque 180px PNGs from `src/app/apple-touch-icon/[skin]/route.tsx`
-  (`ImageResponse`, prerendered for both skins, the favicon artwork full-bleed).
+  (`ImageResponse`, prerendered for Okładka and Tuner, the favicon artwork
+  full-bleed). Kaseta, Rave, Ambient and Guma have no icons of their own yet
+  and link Okładka's.
   Declaring `icons` replaces Next's file-based icons, so there is no
   `app/icon.svg` / `app/apple-icon`; `public/favicon.ico` (Okładka) is only the
   unlinked fallback. On a live switch `ThemeProvider` repoints both links. The

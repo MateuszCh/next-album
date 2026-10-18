@@ -5,6 +5,8 @@ import { upgradeLastfmImage } from '@/lib/coverUrl';
 import { formatReason } from '@/lib/i18n';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
+import { SparkleIcon, Stripes } from '@/components/Icons';
+import { albumLayout } from '@/lib/skin';
 import type { AppMode } from '@/components/AppDataProvider';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
@@ -49,8 +51,11 @@ function useCover(imageUrl: string | null) {
 }
 
 /**
- * The picked album — the element that makes each skin recognisable: a
- * full-width cover in Okładka, an LCD readout in Tuner.
+ * The picked album — the element that makes each skin recognisable. Two
+ * layouts (`albumLayout`): a full-width cover with the text under it (Okładka,
+ * Rave, Ambient, Guma) or a panel with the cover beside the title (Tuner's LCD,
+ * Kaseta's cassette card). The badge sits beside the art, not inside it, so a
+ * skin can place it outside the cover (Ambient's pill, Guma's sticker).
  */
 export function AlbumCard({ album, appMode }: { album: AlbumRecommendation; appMode: AppMode }) {
     const { t } = useI18n();
@@ -76,18 +81,24 @@ export function AlbumCard({ album, appMode }: { album: AlbumRecommendation; appM
     const meta = `${album.artist}${album.year ? ` · ${album.year}` : ''}`;
     const reason = formatReason(t, album.reason);
 
-    if (skin === 'tuner') {
+    const badge = t(MODE_BADGE[album.mode]);
+
+    if (albumLayout(skin) === 'display') {
         return (
             <article className="sk-album--display" aria-label={t('lcd.aria')}>
-                <div className="sk-album__status">
-                    <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
-                    <span>● {t(MODE_BADGE[album.mode])}</span>
-                </div>
+                {skin === 'tuner' && (
+                    <div className="sk-album__status">
+                        <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
+                        <span>● {badge}</span>
+                    </div>
+                )}
                 <div className="sk-album__row">
                     <div className="sk-album__art">{art}</div>
                     <div className="sk-album__heading">
+                        {skin === 'kaseta' && <Stripes className="sk-album__stripes" />}
                         <h2 className="sk-album__title">{album.name}</h2>
                         <p className="sk-album__meta">{meta}</p>
+                        {skin === 'kaseta' && <span className="sk-album__tag">{badge}</span>}
                     </div>
                 </div>
                 <p className="sk-album__reason">{reason}</p>
@@ -97,9 +108,12 @@ export function AlbumCard({ album, appMode }: { album: AlbumRecommendation; appM
 
     return (
         <article className="sk-album--cover">
-            <div className="sk-album__art">
-                {art}
-                <span className="sk-album__badge">{t(MODE_BADGE[album.mode])}</span>
+            <div className="sk-album__frame">
+                <div className="sk-album__art">{art}</div>
+                <span className="sk-album__badge">
+                    <span>{badge}</span>
+                </span>
+                {skin === 'guma' && <GumaSparkles />}
             </div>
             <div className="sk-album__body">
                 <h2 className="sk-album__title">{album.name}</h2>
@@ -107,6 +121,16 @@ export function AlbumCard({ album, appMode }: { album: AlbumRecommendation; appM
                 <p className="sk-album__reason">{reason}</p>
             </div>
         </article>
+    );
+}
+
+/** Guma: two sparkles beside the cover. */
+function GumaSparkles() {
+    return (
+        <>
+            <SparkleIcon size={30} className="sk-album__spark sk-album__spark--big" />
+            <SparkleIcon size={18} className="sk-album__spark sk-album__spark--small" />
+        </>
     );
 }
 
@@ -120,24 +144,27 @@ export function AlbumEmpty({
     appMode: AppMode;
     title: string;
     text: string;
-    /** Tuner: a short line under the title on the LCD. */
+    /** Display layout (Tuner, Kaseta): a short line under the title. */
     hint?: string;
 }) {
     const { t } = useI18n();
     const { skin } = useTheme();
 
-    if (skin === 'tuner') {
+    if (albumLayout(skin) === 'display') {
         return (
-            <article className="sk-album--display" aria-label={t('lcd.aria')}>
-                <div className="sk-album__status">
-                    <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
-                    <span>○ {t('lcd.noSignal')}</span>
-                </div>
+            <article className="sk-album--display sk-album--empty" aria-label={t('lcd.aria')}>
+                {skin === 'tuner' && (
+                    <div className="sk-album__status">
+                        <span>{t('lcd.mode', { mode: t(`mode.${appMode}`) })}</span>
+                        <span>○ {t('lcd.noSignal')}</span>
+                    </div>
+                )}
                 <div className="sk-album__row">
                     <div className="sk-album__art sk-album__art--empty" aria-hidden>
                         – – –
                     </div>
                     <div className="sk-album__heading">
+                        {skin === 'kaseta' && <Stripes className="sk-album__stripes" />}
                         <h1 className="sk-album__title">{title}</h1>
                         {hint && <p className="sk-album__meta">{hint}</p>}
                     </div>
@@ -149,12 +176,15 @@ export function AlbumEmpty({
 
     return (
         <article className="sk-album--cover sk-album--empty">
-            <div className="sk-album__art">
-                <span className="sk-album__rings" aria-hidden>
-                    <span />
-                    <span />
-                </span>
-                <span className="sk-album__empty-note">{t('draw.empty')}</span>
+            <div className="sk-album__frame">
+                <div className="sk-album__art">
+                    <span className="sk-album__rings" aria-hidden>
+                        <span />
+                        <span />
+                    </span>
+                    <span className="sk-album__empty-note">{t('draw.empty')}</span>
+                </div>
+                {skin === 'guma' && <GumaSparkles />}
             </div>
             <div className="sk-album__body">
                 <h1 className="sk-album__title">{title}</h1>

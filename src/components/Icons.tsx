@@ -127,3 +127,38 @@ export function ExternalIcon({ size = 14 }: IconProps) {
         </svg>
     );
 }
+
+/** Guma's four-point sparkle (decoration and the wordmark). */
+export function SparkleIcon({ size = 18, className }: IconProps) {
+    return (
+        <svg className={className} width={size} height={size} viewBox="0 0 24 24" aria-hidden>
+            <path d="M12 0C13 7 17 11 24 12C17 13 13 17 12 24C11 17 7 13 0 12C7 11 11 7 12 0Z" />
+        </svg>
+    );
+}
+
+/** Arrow: Guma's Next button. */
+export function ArrowIcon({ size = 18 }: IconProps) {
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+                d="M5 12h13M13 6l6 6-6 6"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
+/** Kaseta's three-stripe bar (orange / amber / red): the logo, the card, the nav. */
+export function Stripes({ className = '' }: { className?: string }) {
+    return (
+        <span className={`stripes ${className}`} aria-hidden>
+            <span />
+            <span />
+            <span />
+        </span>
+    );
+}

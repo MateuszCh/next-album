@@ -1,0 +1,464 @@
+/* ==========================================================================
+   Ambient — calm, light only: a warm paper ground, one terracotta accent, a
+   round cover in a soft ring, white rounded cards, pill tabs and a floating
+   rounded bottom bar with a dot under the current tab. Fraunces (with italics)
+   for display, Nunito Sans for reading. Only what differs from the shared
+   styles is here.
+   ========================================================================== */
+
+[data-theme='ambient'] {
+    --bg: #f5efea;
+    --bg-elev: #ffffff;
+    --bg-elev-2: #ede1d8;
+    --surface-header: #f5efea;
+    --text: #33241d;
+    --text-dim: #6b5a50;
+    --accent: #a9573a;
+    --accent-ink: #8a4429;
+    --accent-hover: #96492f;
+    --accent-contrast: #ffffff;
+    --accent-soft: #f2e2d8;
+    --border: #9a857a;
+    --border-subtle: #ede1d8;
+    --track: #dfcdc1;
+    --error-bg: rgba(169, 87, 58, 0.08);
+    --error-border: rgba(169, 87, 58, 0.35);
+    --error-text: #8a4429;
+    --badge-bg: rgba(51, 36, 29, 0.6);
+    --badge-text: #ffffff;
+    --skeleton-base: #ede1d8;
+    --skeleton-highlight: #f7f1ec;
+    --shadow: 0 12px 32px rgba(51, 36, 29, 0.12);
+    --shadow-play: 0 12px 24px rgba(169, 87, 58, 0.28);
+    --shadow-key: none;
+    --ambient-cover: #c9a08c;
+    --ambient-lift: 0 2px 6px rgba(51, 36, 29, 0.08);
+    --font-sans: var(--font-ambient-sans);
+    --font-display: var(--font-ambient-serif);
+    --pick-pad: 24px;
+    --pick-gap: 20px;
+    /* The floating bar plus its gap above the screen edge. */
+    --bottom-nav: 100px;
+    color-scheme: light;
+}
+
+/* ---------- Logo ---------- */
+
+.logo--ambient {
+    font-family: var(--font-ambient-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 22px;
+    letter-spacing: 0;
+}
+
+[data-theme='ambient'] .pick-head {
+    height: 64px;
+}
+
+/* ---------- Segmented: a pill track with a lifted white selection ---------- */
+
+[data-theme='ambient'] .seg,
+[data-theme='ambient'] .pick-head .seg {
+    gap: 2px;
+    background: var(--bg-elev-2);
+}
+
+[data-theme='ambient'] .seg__opt[aria-selected='true'],
+[data-theme='ambient'] .seg__opt[aria-checked='true'] {
+    background: var(--bg-elev);
+    color: var(--text);
+    box-shadow: var(--ambient-lift);
+}
+
+[data-theme='ambient'] .seg--compact .seg__opt {
+    min-height: 40px;
+    padding: 0 14px;
+}
+
+/* ---------- Album: a round cover in a soft ring, everything centred ---------- */
+
+[data-theme='ambient'] .sk-album--cover {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    text-align: center;
+}
+
+[data-theme='ambient'] .sk-album__frame {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-top: 14px;
+}
+
+[data-theme='ambient'] .sk-album--cover .sk-album__art {
+    width: 236px;
+    height: 236px;
+    aspect-ratio: auto;
+    border-radius: 50%;
+    background: var(--ambient-cover);
+    box-shadow:
+        0 0 0 14px var(--bg-elev-2),
+        0 26px 50px rgba(51, 36, 29, 0.16);
+}
+
+[data-theme='ambient'] .sk-album--cover.sk-album--empty .sk-album__art {
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .sk-album__badge {
+    position: static;
+    padding: 5px 12px;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    backdrop-filter: none;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+[data-theme='ambient'] .sk-album--cover .sk-album__body {
+    align-items: center;
+    gap: 10px;
+}
+
+[data-theme='ambient'] .sk-album--cover .sk-album__title {
+    font-weight: 500;
+    font-size: 36px;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+}
+
+[data-theme='ambient'] .sk-album--cover .sk-album__meta {
+    font-size: 16px;
+}
+
+[data-theme='ambient'] .sk-album--cover .sk-album__reason {
+    margin: 2px 0 0;
+    font-family: var(--font-ambient-serif);
+    font-style: italic;
+    font-size: 16px;
+}
+
+/* ---------- Next: a round save beside a terracotta pill ---------- */
+
+.sk-next--ambient .sk-next__row {
+    gap: 12px;
+}
+
+.sk-next--ambient .sk-next__side {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    background: var(--bg-elev);
+}
+
+.sk-next--ambient .sk-next__side[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.sk-next--ambient .sk-next__main {
+    flex: 1 1 auto;
+    width: auto;
+    height: 60px;
+    border-radius: var(--radius-pill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-weight: 800;
+    font-size: 17px;
+}
+
+.sk-next--ambient .sk-next__main svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ---------- Listen: plain text links ---------- */
+
+[data-theme='ambient'] .listen {
+    gap: 18px;
+}
+
+[data-theme='ambient'] .listen__link {
+    height: auto;
+    min-height: var(--touch-min);
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+[data-theme='ambient'] .listen__link:hover {
+    color: var(--accent-ink);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+[data-theme='ambient'] .listen__link svg {
+    display: none;
+}
+
+/* ---------- Settings: a white card ---------- */
+
+[data-theme='ambient'] .sheet {
+    gap: 16px;
+    padding: 20px;
+    border-radius: 24px;
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .sheet__title {
+    font-weight: 500;
+    font-size: 20px;
+    letter-spacing: 0;
+}
+
+.sk-balance--ambient .sk-balance__labels {
+    font-weight: 400;
+}
+
+.sk-balance--ambient input[type='range']::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+    border: 2px solid var(--accent);
+    background: var(--bg-elev);
+    box-shadow: 0 4px 12px rgba(51, 36, 29, 0.18);
+}
+
+.sk-balance--ambient input[type='range']::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--accent);
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .chip {
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .chip[aria-pressed='true'] {
+    background: var(--accent);
+}
+
+[data-theme='ambient'] .chip--more {
+    border-style: dashed;
+    color: var(--text-dim);
+}
+
+[data-theme='ambient'] .filter-label {
+    font-weight: 400;
+}
+
+/* ---------- Bottom nav: a floating rounded bar, a dot under the tab ---------- */
+
+.sk-nav--ambient {
+    left: max(16px, calc((100% - var(--app-max)) / 2 + 16px));
+    right: max(16px, calc((100% - var(--app-max)) / 2 + 16px));
+    bottom: calc(16px + var(--safe-bottom));
+    height: 68px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 34px;
+    background: var(--bg-elev);
+    box-shadow: 0 12px 32px rgba(51, 36, 29, 0.16);
+}
+
+.sk-nav--ambient a {
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.sk-nav--ambient a::after {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+}
+
+.sk-nav--ambient a[aria-current='page'] {
+    color: var(--accent-ink);
+    font-weight: 800;
+}
+
+.sk-nav--ambient a[aria-current='page']::after {
+    background: var(--accent);
+}
+
+.sk-nav--ambient .sk-nav__icon {
+    position: relative;
+}
+
+.sk-nav--ambient .sk-nav__count {
+    position: absolute;
+    top: -6px;
+    left: 14px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 5px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    box-shadow: 0 0 0 2px var(--bg-elev);
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 17px;
+    text-align: center;
+}
+
+/* ---------- Tab screens ---------- */
+
+[data-theme='ambient'] .screen-head {
+    padding-top: 30px;
+}
+
+[data-theme='ambient'] .screen-title {
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: -0.01em;
+}
+
+/* History: white rounded rows with a round cover. */
+[data-theme='ambient'] .rows {
+    gap: 10px;
+}
+
+[data-theme='ambient'] .row {
+    gap: 10px;
+    padding: 10px 10px 10px 12px;
+    border-radius: 22px;
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .row__pick {
+    min-height: 52px;
+    gap: 14px;
+    padding: 0;
+    border-radius: 0;
+    background: none;
+}
+
+[data-theme='ambient'] .row__pick:hover .row__name {
+    color: var(--accent-ink);
+}
+
+[data-theme='ambient'] .row__cover {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--bg-elev-2);
+}
+
+[data-theme='ambient'] .row__name,
+[data-theme='ambient'] .tile__name {
+    font-family: var(--font-ambient-serif);
+    font-weight: 500;
+    font-size: 17px;
+}
+
+[data-theme='ambient'] .row__mode {
+    text-transform: lowercase;
+}
+
+[data-theme='ambient'] .row__action {
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .row__action[aria-pressed='true'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+}
+
+/* Saved: round covers, centred names. */
+[data-theme='ambient'] .tiles {
+    gap: 22px 16px;
+}
+
+[data-theme='ambient'] .tile__open {
+    align-items: center;
+    padding-top: 8px;
+    text-align: center;
+}
+
+[data-theme='ambient'] .tile__art {
+    width: calc(100% - 16px);
+    border-radius: 50%;
+    box-shadow: 0 0 0 6px var(--bg-elev-2);
+}
+
+[data-theme='ambient'] .tile__meta {
+    width: 100%;
+    align-items: center;
+}
+
+[data-theme='ambient'] .tile__name,
+[data-theme='ambient'] .tile__sub {
+    max-width: 100%;
+}
+
+[data-theme='ambient'] .tile__remove {
+    top: 0;
+    right: 0;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    color: var(--text);
+    backdrop-filter: none;
+}
+
+/* ---------- Account ---------- */
+
+[data-theme='ambient'] .profile,
+[data-theme='ambient'] .panel--feature {
+    background: var(--bg-elev);
+}
+
+[data-theme='ambient'] .profile__name,
+[data-theme='ambient'] .login-card__title {
+    font-weight: 500;
+}
+
+[data-theme='ambient'] .panel--feature {
+    box-shadow: inset 0 0 0 1px var(--border-subtle);
+}
+
+/* ---------- Style picker ---------- */
+
+.sk-style__name--ambient {
+    font-family: var(--font-ambient-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.sk-thumb-ambient {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.sk-thumb-ambient .sk-thumb__cover {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--ambient-cover);
+    box-shadow: 0 0 0 5px var(--bg-elev-2);
+}
+
+.sk-thumb-ambient .sk-thumb__cta {
+    width: 70%;
+    height: 14px;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+}

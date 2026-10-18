@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { SKINS, type Skin } from '@/lib/skin';
+import type { Skin } from '@/lib/skin';
 
 // Apple touch icons, one per skin (`layout.tsx` links the saved skin's). They
 // must be raster and opaque (iOS renders transparency as black) and iOS applies
@@ -9,13 +9,10 @@ import { SKINS, type Skin } from '@/lib/skin';
 export const dynamic = 'force-static';
 export const dynamicParams = false;
 
-export function generateStaticParams() {
-    return SKINS.map((skin) => ({ skin }));
-}
-
 const SIZE = 180;
 
-const ARTWORK: Record<Skin, { background: string; mark: React.ReactNode[] }> = {
+// Skins without artwork of their own link Okładka's (`SKIN_ICONS`).
+const ARTWORK: Partial<Record<Skin, { background: string; mark: React.ReactNode[] }>> = {
     // Coral disc with a faint record groove and a dark play.
     okladka: {
         background: '#141216',
@@ -53,9 +50,13 @@ const ARTWORK: Record<Skin, { background: string; mark: React.ReactNode[] }> = {
     },
 };
 
+export function generateStaticParams() {
+    return Object.keys(ARTWORK).map((skin) => ({ skin }));
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ skin: string }> }) {
     const { skin } = await params;
-    const art = ARTWORK[skin as Skin];
+    const art = ARTWORK[skin as Skin]!;
     return new ImageResponse(
         (
             <div

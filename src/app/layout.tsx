@@ -1,7 +1,24 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, DM_Sans, Instrument_Sans, Martian_Mono } from 'next/font/google';
+import {
+    Archivo,
+    Bricolage_Grotesque,
+    DM_Sans,
+    Fraunces,
+    Fredoka,
+    Instrument_Sans,
+    Manrope,
+    Martian_Mono,
+    Nunito_Sans,
+    Permanent_Marker,
+    Unbounded,
+} from 'next/font/google';
 import { cookies } from 'next/headers';
 import './globals.css';
+// The other skins: tokens and the styles that differ from the shared ones.
+import './skins/kaseta.css';
+import './skins/rave.css';
+import './skins/ambient.css';
+import './skins/guma.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import type { Lang } from '@/lib/i18n';
@@ -38,7 +55,75 @@ const instrumentSans = Instrument_Sans({
     preload: false,
 });
 
-const fontVariables = [bricolage, dmSans, martianMono, instrumentSans]
+// Kaseta: a condensed grotesk (the width axis gives the 70–80% labels) + a
+// marker for album titles. Rave: a wide display face + a plain sans. Ambient: a
+// soft serif (with italics) + a rounded sans. Guma: one rounded face. None is
+// preloaded; a font is only fetched once its skin is on screen.
+const archivo = Archivo({
+    subsets: ['latin', 'latin-ext'],
+    axes: ['wdth'],
+    variable: '--font-kaseta',
+    display: 'swap',
+    preload: false,
+});
+
+const permanentMarker = Permanent_Marker({
+    subsets: ['latin'],
+    weight: '400',
+    variable: '--font-kaseta-marker',
+    display: 'swap',
+    preload: false,
+});
+
+const unbounded = Unbounded({
+    subsets: ['latin', 'latin-ext'],
+    variable: '--font-rave-display',
+    display: 'swap',
+    preload: false,
+});
+
+const manrope = Manrope({
+    subsets: ['latin', 'latin-ext'],
+    variable: '--font-rave-sans',
+    display: 'swap',
+    preload: false,
+});
+
+const fraunces = Fraunces({
+    subsets: ['latin', 'latin-ext'],
+    style: ['normal', 'italic'],
+    variable: '--font-ambient-serif',
+    display: 'swap',
+    preload: false,
+});
+
+const nunitoSans = Nunito_Sans({
+    subsets: ['latin', 'latin-ext'],
+    variable: '--font-ambient-sans',
+    display: 'swap',
+    preload: false,
+});
+
+const fredoka = Fredoka({
+    subsets: ['latin', 'latin-ext'],
+    variable: '--font-guma',
+    display: 'swap',
+    preload: false,
+});
+
+const fontVariables = [
+    bricolage,
+    dmSans,
+    martianMono,
+    instrumentSans,
+    archivo,
+    permanentMarker,
+    unbounded,
+    manrope,
+    fraunces,
+    nunitoSans,
+    fredoka,
+]
     .map((f) => f.variable)
     .join(' ');
 

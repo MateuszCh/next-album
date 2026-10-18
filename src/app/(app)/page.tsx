@@ -16,6 +16,14 @@ import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
 import { errorMessage } from '@/lib/i18n';
 import { albumKey, isSaved } from '@/lib/history';
+import type { Skin } from '@/lib/skin';
+
+// The title of the pick-settings sheet in the skins that title it.
+const SHEET_TITLES: Partial<Record<Skin, string>> = {
+    okladka: 'draw.settings',
+    ambient: 'draw.mood',
+    guma: 'draw.howNew',
+};
 
 /** Losuj: the picked album, the Next button and the pick settings / search filters. */
 export default function PickPage() {
@@ -36,7 +44,6 @@ export default function PickPage() {
         toggleSave,
     } = useAppData();
     const settingsRef = useRef<HTMLElement>(null);
-    const tuner = skin === 'tuner';
 
     const header = (
         <header className="pick-head">
@@ -52,6 +59,7 @@ export default function PickPage() {
                 value={mode}
                 onChange={setMode}
                 disabled={loading}
+                className="seg--modes"
             />
         </header>
     );
@@ -81,6 +89,10 @@ export default function PickPage() {
     const displayName = me.lastfmUsername ?? me.email ?? '';
     const hint = t(mode === 'lastfm' ? 'hint.default' : 'hint.search');
     const settingsLabel = t(mode === 'lastfm' ? 'draw.settings' : 'draw.filters');
+    // Okładka, Ambient and Guma hold the controls in a titled sheet/card; the
+    // hardware-like skins in an untitled plate (the balance names itself), with
+    // the search filters straight on the faceplate.
+    const sheetTitle = SHEET_TITLES[skin];
 
     // Until the last album has loaded, a placeholder card instead of the
     // "nothing picked yet" one, which would flash before the album.
@@ -130,7 +142,11 @@ export default function PickPage() {
                         ? { saved: isSaved(saved, album), onToggle: () => toggleSave(album) }
                         : undefined
                 }
-                settings={{ label: settingsLabel, onClick: scrollToSettings }}
+                settings={{
+                    label: settingsLabel,
+                    short: t(mode === 'lastfm' ? 'key.balance' : 'key.filters'),
+                    onClick: scrollToSettings,
+                }}
             />
             {errorBox}
             {album ? (
@@ -144,14 +160,18 @@ export default function PickPage() {
             )}
             <section
                 ref={settingsRef}
-                className={tuner ? (mode === 'lastfm' ? 'tun-panel' : 'tun-filters') : 'sheet'}
+                className={sheetTitle ? 'sheet' : mode === 'lastfm' ? 'pick-plate' : 'pick-filters'}
                 aria-label={settingsLabel}
             >
-                {!tuner && <h2 className="sheet__title">{settingsLabel}</h2>}
+                {sheetTitle && (
+                    <h2 className="sheet__title">
+                        {mode === 'lastfm' ? t(sheetTitle) : settingsLabel}
+                    </h2>
+                )}
                 {controls}
-                {!tuner && <Credits />}
+                {skin === 'okladka' && <Credits />}
             </section>
-            {tuner && <Credits className="pick-credits" />}
+            {skin !== 'okladka' && <Credits className="pick-credits" />}
         </div>
     );
 }

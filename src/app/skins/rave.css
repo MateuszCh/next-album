@@ -1,0 +1,613 @@
+/* ==========================================================================
+   Rave — acid, dark only: black ground, lime first and pink second, square
+   corners everywhere (the radius tokens are 0), skewed keys and tags, a lime
+   frame with a pink offset shadow on the cover, EQ bars for the balance and a
+   numbered history. Unbounded for display and labels, Manrope for reading.
+   Only what differs from the shared styles is here.
+   ========================================================================== */
+
+[data-theme='rave'] {
+    --bg: #0a0a0a;
+    --bg-elev: #161616;
+    --bg-elev-2: #222222;
+    --surface-header: #0a0a0a;
+    --text: #f5f5f0;
+    --text-dim: #a3a3a3;
+    --accent: #d4ff3a;
+    --accent-ink: #d4ff3a;
+    --accent-hover: #e4ff7a;
+    --accent-contrast: #0a0a0a;
+    --accent-soft: rgba(212, 255, 58, 0.12);
+    --border: #6b6b6b;
+    --border-subtle: #262626;
+    --track: #2a2a2a;
+    --error-bg: rgba(255, 61, 139, 0.12);
+    --error-border: rgba(255, 61, 139, 0.5);
+    --error-text: #ffb3d1;
+    --badge-bg: rgba(0, 0, 0, 0.7);
+    --badge-text: #f5f5f0;
+    --skeleton-base: #161616;
+    --skeleton-highlight: #262626;
+    --shadow: none;
+    --shadow-play: none;
+    --shadow-key: none;
+    --radius: 0px;
+    --radius-sm: 0px;
+    --radius-pill: 0px;
+    --radius-card: 0px;
+    --radius-sheet: 0px;
+    --radius-key: 0px;
+    --rave-pink: #ff3d8b;
+    --rave-reason: #c9c9c4;
+    --font-sans: var(--font-rave-sans);
+    --font-display: var(--font-rave-display);
+    --pick-pad: 20px;
+    --pick-gap: 18px;
+    color-scheme: dark;
+}
+
+/* ---------- Logo, labels ---------- */
+
+.logo--rave {
+    font-family: var(--font-rave-display);
+    font-weight: 900;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .sk-balance__title,
+[data-theme='rave'] .filter-label,
+[data-theme='rave'] .section-label,
+[data-theme='rave'] .picker__label {
+    font-family: var(--font-rave-display);
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+
+/* ---------- Segmented: skewed tags; the header modes are underlined ---------- */
+
+[data-theme='rave'] .seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 0 0 4px;
+    background: none;
+}
+
+[data-theme='rave'] .seg__opt {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    transform: skewX(-10deg);
+    font-family: var(--font-rave-display);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .seg__opt[aria-selected='true'],
+[data-theme='rave'] .seg__opt[aria-checked='true'] {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 800;
+}
+
+[data-theme='rave'] .pick-head .seg {
+    gap: 14px;
+    padding: 0;
+    background: none;
+}
+
+[data-theme='rave'] .pick-head .seg__opt {
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--text-dim);
+    transform: none;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+[data-theme='rave'] .pick-head .seg__opt[aria-selected='true'] {
+    border-bottom-color: var(--accent);
+    background: none;
+    color: var(--text);
+    font-weight: 700;
+}
+
+/* ---------- Album: framed cover with a pink offset shadow ---------- */
+
+[data-theme='rave'] .sk-album--cover {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: none;
+}
+
+[data-theme='rave'] .sk-album__frame {
+    margin-right: 10px;
+}
+
+[data-theme='rave'] .sk-album--cover .sk-album__art {
+    border: 3px solid var(--accent);
+    background: var(--bg-elev-2);
+    box-shadow: 10px 10px 0 var(--rave-pink);
+}
+
+[data-theme='rave'] .sk-album__badge {
+    top: 12px;
+    left: 12px;
+    padding: 6px 12px;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    backdrop-filter: none;
+    transform: skewX(-10deg);
+    font-family: var(--font-rave-display);
+    font-weight: 800;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .sk-album--cover .sk-album__body {
+    gap: 10px;
+}
+
+[data-theme='rave'] .sk-album--cover .sk-album__title {
+    font-family: var(--font-rave-display);
+    font-weight: 900;
+    font-size: 38px;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+[data-theme='rave'] .sk-album--cover .sk-album__meta {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+[data-theme='rave'] .sk-album--cover .sk-album__reason {
+    margin: 0;
+    font-size: 15px;
+    color: var(--rave-reason);
+}
+
+/* ---------- Next: one skewed lime bar ---------- */
+
+.sk-next--rave .sk-next__row {
+    display: block;
+    padding: 0 6px;
+}
+
+.sk-next--rave .sk-next__main {
+    width: 100%;
+    height: 66px;
+    border-radius: 0;
+    transform: skewX(-10deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-family: var(--font-rave-display);
+    font-weight: 900;
+    font-size: 17px;
+    text-transform: uppercase;
+}
+
+.sk-next--rave .sk-next__main:active:not(:disabled) {
+    transform: skewX(-10deg) translateY(2px);
+}
+
+/* ---------- Listen: Save (pink) + links ---------- */
+
+[data-theme='rave'] .listen {
+    justify-content: flex-start;
+}
+
+[data-theme='rave'] .listen__link {
+    padding: 0 12px;
+    border-color: var(--border);
+    background: transparent;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+[data-theme='rave'] .listen__link svg {
+    color: inherit;
+}
+
+.listen__save {
+    height: var(--touch-min);
+    padding: 0 14px;
+    border: 2px solid var(--rave-pink);
+    background: transparent;
+    color: var(--rave-pink);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-rave-display);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.listen__save[aria-pressed='true'] {
+    background: var(--rave-pink);
+    color: var(--bg);
+}
+
+.listen__save:focus-visible {
+    outline: 2px solid var(--accent-ink);
+    outline-offset: 2px;
+}
+
+/* ---------- Balance: EQ bars lit up to the value ---------- */
+
+[data-theme='rave'] .pick-plate {
+    gap: 12px;
+    padding: 16px;
+    border: none;
+    background: var(--bg-elev);
+}
+
+.sk-balance--rave {
+    gap: 12px;
+}
+
+.sk-balance__eq {
+    height: 64px;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.sk-balance__eq span {
+    flex: 1;
+    background: var(--track);
+    transition: background 0.1s ease;
+}
+
+.sk-balance__eq span[data-level='on'] {
+    background: var(--accent);
+}
+
+.sk-balance__eq span[data-level='peak'] {
+    background: var(--rave-pink);
+}
+
+.sk-balance--rave input[type='range'] {
+    height: 4px;
+    background: var(--track);
+}
+
+.sk-balance--rave input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 28px;
+    border: none;
+    background: var(--accent);
+    transform: skewX(-12deg);
+}
+
+.sk-balance--rave input[type='range']::-moz-range-thumb {
+    width: 14px;
+    height: 28px;
+    border: none;
+    border-radius: 0;
+    background: var(--accent);
+}
+
+.sk-balance--rave input[type='range']::-moz-range-track {
+    background: transparent;
+}
+
+.sk-balance--rave .sk-balance__labels {
+    font-family: var(--font-rave-display);
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+/* ---------- Filters ---------- */
+
+[data-theme='rave'] .chip {
+    padding: 0 14px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+[data-theme='rave'] .chip[aria-pressed='true'] {
+    font-weight: 800;
+}
+
+[data-theme='rave'] .chip--more {
+    border-style: dashed;
+    color: var(--text-dim);
+}
+
+[data-theme='rave'] .filters-reset {
+    font-family: var(--font-rave-display);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .picker,
+[data-theme='rave'] .picker-menu,
+[data-theme='rave'] .picker-menu button {
+    border-radius: 0;
+}
+
+[data-theme='rave'] .picker {
+    border-color: var(--border-subtle);
+    background: var(--bg-elev);
+}
+
+[data-theme='rave'] .picker[data-active] {
+    border-color: var(--accent);
+}
+
+/* ---------- Bottom nav: a skewed lime tag on the current tab ---------- */
+
+.sk-nav--rave {
+    padding-top: 0;
+    padding-bottom: calc(12px + var(--safe-bottom));
+    background: var(--bg);
+}
+
+.sk-nav--rave a {
+    gap: 5px;
+    font-family: var(--font-rave-display);
+    font-weight: 700;
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+.sk-nav--rave .sk-nav__icon {
+    position: relative;
+    width: 60px;
+    height: 30px;
+}
+
+.sk-nav--rave a[aria-current='page'] {
+    color: var(--text);
+    font-weight: 800;
+}
+
+.sk-nav--rave a[aria-current='page'] .sk-nav__icon {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    transform: skewX(-12deg);
+}
+
+.sk-nav--rave .sk-nav__count {
+    position: absolute;
+    top: -6px;
+    right: 2px;
+    padding: 0 4px;
+    background: var(--rave-pink);
+    color: var(--bg);
+    font-weight: 800;
+    font-size: 9px;
+    line-height: 14px;
+}
+
+/* ---------- Tab screens ---------- */
+
+[data-theme='rave'] .screen {
+    gap: 18px;
+    padding: 0 20px 24px;
+}
+
+[data-theme='rave'] .screen-head {
+    padding: 28px 0 0;
+}
+
+[data-theme='rave'] .screen-title {
+    font-weight: 900;
+    font-size: 34px;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+[data-theme='rave'] .screen-count {
+    font-family: var(--font-rave-display);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+/* History: a numbered tracklist between hairlines. */
+[data-theme='rave'] .rows {
+    gap: 0;
+}
+
+[data-theme='rave'] .row {
+    gap: 10px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+[data-theme='rave'] .row:last-child {
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+[data-theme='rave'] .row__pick {
+    min-height: 72px;
+    padding: 0;
+    background: none;
+}
+
+[data-theme='rave'] .row__pick:hover {
+    background: none;
+}
+
+[data-theme='rave'] .row__pick:hover .row__name {
+    color: var(--accent);
+}
+
+[data-theme='rave'] .row__num {
+    display: block;
+    width: 30px;
+    flex-shrink: 0;
+    font-family: var(--font-rave-display);
+    font-weight: 900;
+    font-size: 16px;
+    color: var(--accent);
+}
+
+[data-theme='rave'] .row__cover {
+    width: 48px;
+    height: 48px;
+}
+
+[data-theme='rave'] .row__name,
+[data-theme='rave'] .tile__name {
+    font-weight: 800;
+}
+
+[data-theme='rave'] .row__mode {
+    text-transform: lowercase;
+}
+
+[data-theme='rave'] .row__action[aria-pressed='true'] {
+    border: 2px solid var(--rave-pink);
+    color: var(--rave-pink);
+}
+
+/* Saved: covers with the lime frame. */
+[data-theme='rave'] .tile__art {
+    border: 2px solid var(--border-subtle);
+}
+
+[data-theme='rave'] .tile__open:hover .tile__art {
+    border-color: var(--accent);
+}
+
+[data-theme='rave'] .tile__remove {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    backdrop-filter: none;
+}
+
+[data-theme='rave'] .screen-hint {
+    border-left: 3px solid var(--accent);
+}
+
+/* ---------- Account ---------- */
+
+[data-theme='rave'] .profile,
+[data-theme='rave'] .panel--feature {
+    border-radius: 0;
+}
+
+[data-theme='rave'] .profile {
+    border-left: 4px solid var(--accent);
+    background: var(--bg-elev);
+}
+
+[data-theme='rave'] .profile__avatar {
+    border-radius: 0;
+}
+
+[data-theme='rave'] .profile__name {
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .panel--feature {
+    background: var(--bg-elev);
+}
+
+[data-theme='rave'] .login-card__title {
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .status-pill {
+    background: none;
+    border: 1px solid var(--accent);
+    font-family: var(--font-rave-display);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .sk-btn {
+    font-family: var(--font-rave-display);
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+[data-theme='rave'] .sk-btn--primary {
+    transform: skewX(-10deg);
+}
+
+[data-theme='rave'] .sk-btn--outline {
+    border: 2px solid var(--rave-pink);
+    color: var(--rave-pink);
+}
+
+[data-theme='rave'] .sk-btn--outline:hover {
+    background: rgba(255, 61, 139, 0.12);
+}
+
+[data-theme='rave'] .sk-input {
+    border-radius: 0;
+    background: var(--bg);
+}
+
+/* Square corners where the shared styles draw a fixed radius. */
+[data-theme='rave'] .row__pick,
+[data-theme='rave'] .row__cover,
+[data-theme='rave'] .row__action,
+[data-theme='rave'] .tile__remove,
+[data-theme='rave'] .screen-hint {
+    border-radius: 0;
+}
+
+/* ---------- Style picker ---------- */
+
+.sk-style__name--rave {
+    font-family: var(--font-rave-display);
+    font-weight: 900;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.sk-thumb-rave {
+    height: 100%;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sk-thumb-rave .sk-thumb__cover {
+    height: 38px;
+    width: 78%;
+    border: 2px solid var(--accent);
+    background: var(--bg-elev-2);
+    box-shadow: 5px 5px 0 var(--rave-pink);
+}
+
+.sk-thumb-rave .sk-thumb__cta {
+    height: 14px;
+    margin-left: 3px;
+    background: var(--accent);
+    transform: skewX(-10deg);
+}
