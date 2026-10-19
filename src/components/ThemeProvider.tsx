@@ -12,7 +12,6 @@ import {
 import {
     MODE_COOKIE,
     SKIN_COOKIE,
-    SKIN_ICONS,
     parseMode,
     themeFor,
     type Mode,
@@ -36,18 +35,6 @@ function writeCookie(name: string, value: string) {
     document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`;
 }
 
-// The server HTML links the saved skin's favicon and Apple touch icon
-// (`layout.tsx`); a live switch repoints them until the next request does.
-function applyIcons(skin: Skin) {
-    const icons = SKIN_ICONS[skin];
-    document
-        .querySelectorAll<HTMLLinkElement>('link[rel~="icon"], link[rel="apple-touch-icon"]')
-        .forEach((link) => {
-            const href = link.rel === 'apple-touch-icon' ? icons.apple : icons.icon;
-            if (link.getAttribute('href') !== href) link.setAttribute('href', href);
-        });
-}
-
 export function ThemeProvider({
     children,
     initialSkin,
@@ -68,10 +55,6 @@ export function ThemeProvider({
     useLayoutEffect(() => {
         document.documentElement.dataset.theme = theme;
     }, [theme]);
-
-    useLayoutEffect(() => {
-        applyIcons(skin);
-    }, [skin]);
 
     const setSkin = useCallback((next: Skin) => {
         setSkinState(next);

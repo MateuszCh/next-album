@@ -33,8 +33,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
     // Skip Next.js static assets, images and the app icons (so the favicon and
-    // touch icon of either skin load even on the gate screen).
-    matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|favicon-okladka.svg|favicon-tuner.svg|apple-touch-icon).*)',
-    ],
+    // touch icon load even on the gate screen).
+    matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|apple-icon).*)'],
 };
