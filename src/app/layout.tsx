@@ -22,7 +22,7 @@ import './skins/guma.css';
 import { LanguageProvider } from '@/components/LanguageProvider';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import type { Lang } from '@/lib/i18n';
-import { MODE_COOKIE, SKIN_COOKIE, SKIN_ICONS, parseMode, parseSkin, themeFor } from '@/lib/skin';
+import { MODE_COOKIE, SKIN_COOKIE, parseMode, parseSkin, themeFor } from '@/lib/skin';
 
 // Okładka skin: a tight, heavy grotesk for titles + a friendly sans for reading.
 const bricolage = Bricolage_Grotesque({
@@ -127,21 +127,12 @@ const fontVariables = [
     .map((f) => f.variable)
     .join(' ');
 
-// The favicon and the Apple touch icon follow the saved skin, so the server HTML
-// already links the right ones (iOS keeps the touch icon it reads when a home
-// screen shortcut is added). Declaring `icons` replaces Next's file-based icons.
-export async function generateMetadata(): Promise<Metadata> {
-    const skin = parseSkin((await cookies()).get(SKIN_COOKIE)?.value);
-    const icons = SKIN_ICONS[skin];
-    return {
-        title: 'Next Album',
-        description: 'A random album to listen to, picked based on your Last.fm profile.',
-        icons: {
-            icon: [{ url: icons.icon, type: 'image/svg+xml' }],
-            apple: [{ url: icons.apple, sizes: '180x180', type: 'image/png' }],
-        },
-    };
-}
+// One set of icons for every skin, Next's file-based ones beside this layout:
+// `favicon.ico`, `icon.svg` and `apple-icon.tsx`.
+export const metadata: Metadata = {
+    title: 'Next Album',
+    description: 'A random album to listen to, picked based on your Last.fm profile.',
+};
 
 export const viewport: Viewport = {
     // Lets the fixed bottom nav sit above the iOS home indicator (safe-area insets).

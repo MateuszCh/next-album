@@ -351,19 +351,12 @@ were designed; their other screens reuse each skin's tokens.
   `i18n.ts`: albumy / kasety / tracki / płyty). `Segmented` (tabs/radios) and
   `StylePicker` (six live thumbnails that carry their own `data-theme`) are
   shared.
-- **Icons follow the skin.** `generateMetadata` in `layout.tsx` links the saved
-  skin's favicon and Apple touch icon from the `skin` cookie (`SKIN_ICONS` in
-  `src/lib/skin.ts`), so the server HTML is right on first load — iOS keeps the
-  touch icon it reads when a home-screen shortcut is added. Favicons are
-  `public/favicon-okladka.svg` / `public/favicon-tuner.svg`; the touch icons are
-  opaque 180px PNGs from `src/app/apple-touch-icon/[skin]/route.tsx`
-  (`ImageResponse`, prerendered for Okładka and Tuner, the favicon artwork
-  full-bleed). Kaseta, Rave, Ambient and Guma have no icons of their own yet
-  and link Okładka's.
-  Declaring `icons` replaces Next's file-based icons, so there is no
-  `app/icon.svg` / `app/apple-icon`; `public/favicon.ico` (Okładka) is only the
-  unlinked fallback. On a live switch `ThemeProvider` repoints both links. The
-  middleware matcher lets all icon paths through the gate.
+- **One icon for every skin.** The app icon (a coral disc with the Next mark on
+  a dark tile) does not change with the skin. They are Next's file-based icons
+  in `src/app/`: `icon.svg` (the source artwork), `favicon.ico` (16/32/48px
+  renders of it) and `apple-icon.tsx` (the opaque 180px Apple touch icon via
+  `ImageResponse`, the same artwork full-bleed). Change the artwork in all
+  three. The middleware matcher lets the icon paths through the gate.
 
 ### Cover art (`src/lib/coverart.ts`)
 

@@ -56,20 +56,3 @@ export function albumLayout(skin: Skin): 'cover' | 'display' {
 export function themeFor(skin: Skin, mode: Mode): ThemeId {
     return skin === 'okladka' ? `okladka-${modeFor(skin, mode)}` : skin;
 }
-
-/**
- * Favicon and Apple touch icon per skin. `layout.tsx` links the saved skin's in
- * the server HTML (from the cookie); `ThemeProvider` repoints them on a live
- * switch. `/favicon.ico` (Okładka) stays an unlinked fallback.
- */
-const OKLADKA_ICONS = { icon: '/favicon-okladka.svg', apple: '/apple-touch-icon/okladka' };
-
-export const SKIN_ICONS: Record<Skin, { icon: string; apple: string }> = {
-    okladka: OKLADKA_ICONS,
-    tuner: { icon: '/favicon-tuner.svg', apple: '/apple-touch-icon/tuner' },
-    // No artwork of their own yet: the default skin's icons.
-    kaseta: OKLADKA_ICONS,
-    rave: OKLADKA_ICONS,
-    ambient: OKLADKA_ICONS,
-    guma: OKLADKA_ICONS,
-};
