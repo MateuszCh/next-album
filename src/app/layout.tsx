@@ -13,6 +13,7 @@ import {
 } from 'next/font/google';
 import localFont from 'next/font/local';
 import { cookies } from 'next/headers';
+import { preconnect } from 'react-dom';
 import './globals.css';
 // The other skins: tokens and the styles that differ from the shared ones.
 import './skins/kaseta.css';
@@ -155,6 +156,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     const initialLang: Lang = storedLang === 'pl' || storedLang === 'en' ? storedLang : 'en';
     const initialSkin = parseSkin(jar.get(SKIN_COOKIE)?.value);
     const initialMode = parseMode(jar.get(MODE_COOKIE)?.value) ?? 'dark';
+    // Album covers come from Last.fm's CDN: open the connection before the first one.
+    preconnect('https://lastfm-img.freetls.fastly.net');
 
     return (
         <html

@@ -1,11 +1,15 @@
-import { upgradeLastfmImage } from '@/lib/coverUrl';
+import { canonicalLastfmImage } from '@/lib/coverUrl';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
-/** A list/grid cover: the sharp variant, lazy-loaded, or ♪ without art. */
+/**
+ * A list/grid cover: the native image (300px, already rendered by the CDN, so it
+ * loads at once — a cold upscaled variant per tile would take seconds), lazy-loaded,
+ * or ♪ without art.
+ */
 export function AlbumThumb({ album }: { album: AlbumRecommendation }) {
     return album.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={upgradeLastfmImage(album.imageUrl)} alt="" loading="lazy" />
+        <img src={canonicalLastfmImage(album.imageUrl)} alt="" loading="lazy" />
     ) : (
         <span className="thumb-placeholder" aria-hidden>
             ♪

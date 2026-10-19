@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { upgradeLastfmImage } from '@/lib/coverUrl';
+import { canonicalLastfmImage, upgradeLastfmImage } from '@/lib/coverUrl';
 import { formatReason } from '@/lib/i18n';
 import { useI18n } from '@/components/LanguageProvider';
 import { useTheme } from '@/components/ThemeProvider';
@@ -22,16 +22,17 @@ export const MODE_BADGE: Record<AlbumRecommendation['mode'], string> = {
  * seconds, but it no longer blocks showing the album).
  */
 function useCover(imageUrl: string | null) {
-    const [src, setSrc] = useState(imageUrl);
+    const native = imageUrl ? canonicalLastfmImage(imageUrl) : null;
+    const [src, setSrc] = useState(native);
     // Whether the visible cover has finished loading. Stays true once the first
     // (low-res) image loads, so the later hi-res swap doesn't re-flash the loader.
     const [loaded, setLoaded] = useState(false);
 
     useEffect(() => {
-        setSrc(imageUrl);
-        if (!imageUrl) return;
-        const hiRes = upgradeLastfmImage(imageUrl);
-        if (hiRes === imageUrl) return;
+        setSrc(native);
+        if (!native) return;
+        const hiRes = upgradeLastfmImage(native);
+        if (hiRes === native) return;
         // Cancel the preload on album change so a slow, stale hi-res load can't
         // overwrite the current album's cover (its CDN transform can take a few
         // seconds, easily outliving a rapid sequence of "next album" clicks).
@@ -45,7 +46,7 @@ function useCover(imageUrl: string | null) {
             cancelled = true;
             preload.onload = null;
         };
-    }, [imageUrl]);
+    }, [native]);
 
     return { src, loaded, onDone: () => setLoaded(true) };
 }

@@ -13,7 +13,7 @@ import { GENRES } from '@/lib/recommend/genres';
 import { DECADES } from '@/lib/recommend/decades';
 import { COUNTRIES } from '@/lib/recommend/countries';
 import { albumKey, guestStore, mergeGuestData, remoteStore } from '@/lib/history';
-import { upgradeLastfmImage } from '@/lib/coverUrl';
+import { canonicalLastfmImage, upgradeLastfmImage } from '@/lib/coverUrl';
 import { APP_MODE_COOKIE, APP_MODES, parseAppMode, type AppMode } from '@/lib/appMode';
 import type { AlbumRecommendation } from '@/lib/lastfm/types';
 
@@ -145,8 +145,9 @@ export function AppDataProvider({
     // Monotonic id for the latest roll; an older in-flight response whose id no
     // longer matches is ignored so it can't overwrite a newer album.
     const rollId = useRef(0);
-    // The next search roll, fetched in the background after one is shown so
-    // "roll again" is instant. Keyed by URL: a filter change makes it stale.
+    // The next roll, fetched in the background after one is shown so "roll
+    // again" is instant. Keyed by URL and Last.fm user: a filter or slider
+    // change, or another account, makes it stale.
     const prefetch = useRef<{ url: string; result: Promise<RollResponse | null> } | null>(null);
 
     // Logged in: the account's data (MongoDB); logged out: this browser's localStorage.
@@ -224,10 +225,11 @@ export function AppDataProvider({
         setError(null);
         try {
             const url = rollUrl(mode, discovery, filters);
+            const prefetchKey = `${me.lastfmUsername ?? ''} ${url}`;
             const prefetched = prefetch.current;
             prefetch.current = null;
             let res: RollResponse | null = null;
-            if (prefetched?.url === url) {
+            if (prefetched?.url === prefetchKey) {
                 res = await prefetched.result;
                 // A failed prefetch, or one repeating the shown album, is refetched.
                 if (!res?.ok || (album && albumKey(res.data) === albumKey(album))) res = null;
@@ -239,26 +241,28 @@ export function AppDataProvider({
             if (!res.ok) throw new Error(res.data.error ?? 'generic');
             const picked = res.data;
             setAlbum(picked);
-            if (mode === 'search') {
-                // Only search mode: a Last.fm prefetch would skip the server's
-                // recent-rolls check. Warm the next cover too (both sizes the card loads).
+            const nextHistory = await store.push(picked);
+            if (nextHistory) setHistory(nextHistory);
+            // Fetch the next pick in the background, once this one is in the
+            // history the server excludes recent rolls by (For me), and warm its
+            // cover in both sizes the card loads — the sharp one is a cold CDN
+            // render of a few seconds, done while this album is on screen.
+            if (id === rollId.current) {
                 const result = fetchRoll(url).catch(() => null);
-                prefetch.current = { url, result };
+                prefetch.current = { url: prefetchKey, result };
                 result.then((next) => {
                     if (!next?.ok || !next.data.imageUrl) return;
-                    new Image().src = next.data.imageUrl;
+                    new Image().src = canonicalLastfmImage(next.data.imageUrl);
                     new Image().src = upgradeLastfmImage(next.data.imageUrl);
                 });
             }
-            const nextHistory = await store.push(picked);
-            if (nextHistory) setHistory(nextHistory);
         } catch (e) {
             if (id !== rollId.current) return;
             setError(e instanceof Error ? e.message : 'generic');
         } finally {
             if (id === rollId.current) setLoading(false);
         }
-    }, [mode, discovery, filters, store, album]);
+    }, [mode, discovery, filters, store, album, me.lastfmUsername]);
 
     const toggleTag = useCallback((dimension: TagDimension, tag: string) => {
         setFilters((f) => {

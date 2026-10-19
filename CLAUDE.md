@@ -193,10 +193,11 @@ anonymous and token requests. **Anonymous requests get no cover images**
 Last.fm `album.getInfo` art (API key only, no account) and then the Cover Art
 Archive via `resolveCover`.
 
-The client prefetches in search mode: after showing an album, `AppDataProvider` fetches
-the next one for the same URL in the background (and warms both cover sizes), and
-the next roll uses it if the URL still matches and it isn't the album on screen.
-Not done in For me mode — a prefetch would bypass the server's recent-rolls check.
+The client prefetches in both modes: after showing an album and pushing it to the
+history, `AppDataProvider` fetches the next one for the same URL in the background
+(and warms both cover sizes), and the next roll uses it if the URL and Last.fm user
+still match and it isn't the album on screen. Starting it only after the push keeps
+For me's server-side recent-rolls check intact.
 
 ### History & saved albums
 
@@ -364,13 +365,17 @@ were designed; their other screens reuse each skin's tokens.
 ### Cover art (`src/lib/coverart.ts`)
 
 Last.fm frequently returns a placeholder "star" image (detected by known md5
-hashes). `resolveCover` returns real Last.fm CDN images (the client upgrades them to
-600×600) and falls back to the Cover Art Archive when Last.fm only has a
-placeholder: a `HEAD /release/<mbid>/front-500` (Last.fm mbids are release ids)
+hashes). `resolveCover` returns real Last.fm CDN images (native 300×300) and
+falls back to the Cover Art Archive when Last.fm only has a placeholder: a `HEAD /release/<mbid>/front-500` (Last.fm mbids are release ids)
 without following the redirect, cached 7 days (memory + Mongo) including a
 definite "no cover". Returns `null` when nothing is found (UI shows its own
 placeholder). Covers are plain `<img>` tags (no `next/image`). The client-side
-`upgradeLastfmImage` lives in `src/lib/coverUrl.ts`, apart from `coverart.ts`,
+helpers live in `src/lib/coverUrl.ts`: `canonicalLastfmImage` moves URLs stored
+under the old `lastfm.freetls.fastly.net` host to the current, warm
+`lastfm-img.freetls.fastly.net`, and `upgradeLastfmImage` gives the 600×600
+variant. That size is a cold CDN render (~1.5 s typically, 5 s+ one time in ten,
+sometimes a 404), so only the big `AlbumCard` loads it, behind the native image;
+list/grid thumbs (`AlbumThumb`) stay native. They live apart from `coverart.ts`,
 which is server-only (it pulls in the MongoDB driver) — client components must
 not import it.
 
