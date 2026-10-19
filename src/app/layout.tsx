@@ -4,14 +4,14 @@ import {
     Bricolage_Grotesque,
     DM_Sans,
     Fraunces,
-    Fredoka,
     Instrument_Sans,
+    Kalam,
     Manrope,
     Martian_Mono,
     Nunito_Sans,
-    Permanent_Marker,
     Unbounded,
 } from 'next/font/google';
+import localFont from 'next/font/local';
 import { cookies } from 'next/headers';
 import './globals.css';
 // The other skins: tokens and the styles that differ from the shared ones.
@@ -67,9 +67,10 @@ const archivo = Archivo({
     preload: false,
 });
 
-const permanentMarker = Permanent_Marker({
-    subsets: ['latin'],
-    weight: '400',
+// Kalam, not Permanent Marker: Permanent Marker lacks ą ć ę ł ń ś ź ż.
+const kalam = Kalam({
+    subsets: ['latin', 'latin-ext'],
+    weight: '700',
     variable: '--font-kaseta-marker',
     display: 'swap',
     preload: false,
@@ -104,8 +105,17 @@ const nunitoSans = Nunito_Sans({
     preload: false,
 });
 
-const fredoka = Fredoka({
-    subsets: ['latin', 'latin-ext'],
+// Nunito, not Fredoka: Google's Fredoka lacks ą ć ę ń ś ź ż. Nunito is lighter
+// at the same weight, so each CSS weight maps to a Nunito instance 200 heavier
+// (static latin + latin-ext cuts in ./skins/fonts), matching Fredoka's heft.
+const gumaFont = localFont({
+    src: [
+        { path: './skins/fonts/nunito-500.woff2', weight: '400' },
+        { path: './skins/fonts/nunito-700.woff2', weight: '500' },
+        { path: './skins/fonts/nunito-800.woff2', weight: '600' },
+        { path: './skins/fonts/nunito-900.woff2', weight: '700' },
+        { path: './skins/fonts/nunito-900.woff2', weight: '800' },
+    ],
     variable: '--font-guma',
     display: 'swap',
     preload: false,
@@ -117,12 +127,12 @@ const fontVariables = [
     martianMono,
     instrumentSans,
     archivo,
-    permanentMarker,
+    kalam,
     unbounded,
     manrope,
     fraunces,
     nunitoSans,
-    fredoka,
+    gumaFont,
 ]
     .map((f) => f.variable)
     .join(' ');

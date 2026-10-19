@@ -1,7 +1,7 @@
 /* ==========================================================================
    Kaseta — a 70s cassette, dark only: navy ground, a cream cassette card, an
    orange / amber / red stripe trio, tactile grey keys with a pressed-in edge.
-   Archivo (condensed, capitals) for labels, Permanent Marker for album titles.
+   Archivo (condensed, capitals) for labels, Kalam (a marker) for album titles.
    Only what differs from the shared styles is here.
    ========================================================================== */
 
@@ -192,10 +192,10 @@
 [data-theme='kaseta'] .sk-album--display .sk-album__title {
     margin-top: 4px;
     font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
-    font-weight: 400;
+    font-weight: 700;
     font-stretch: normal;
     font-size: 30px;
-    line-height: 1;
+    line-height: 1.2;
     text-transform: none;
 }
 
@@ -605,9 +605,10 @@
 [data-theme='kaseta'] .row__name,
 [data-theme='kaseta'] .tile__name {
     font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
-    font-weight: 400;
+    font-weight: 700;
     font-size: 18px;
-    line-height: 1.1;
+    /* Room for Ż / Ś above the caps: the name clips (overflow: hidden). */
+    line-height: 1.5;
 }
 
 [data-theme='kaseta'] .row__sub,
@@ -677,7 +678,7 @@
 
 [data-theme='kaseta'] .profile__name {
     font-family: var(--font-kaseta-marker), var(--font-kaseta), cursive;
-    font-weight: 400;
+    font-weight: 700;
 }
 
 [data-theme='kaseta'] .profile__via {

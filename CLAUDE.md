@@ -324,11 +324,14 @@ were designed; their other screens reuse each skin's tokens.
   files win). The Tuner LED (`.led`) only shows in Tuner.
 - **Fonts** (`next/font` in `layout.tsx`): Bricolage Grotesque + DM Sans for
   Okładka (the only preloaded pair); Martian Mono (`wdth` axis) + Instrument
-  Sans for Tuner; Archivo (`wdth` axis, condensed capitals) + Permanent Marker
-  (album titles, Latin only) for Kaseta; Unbounded + Manrope for Rave; Fraunces
-  (with italics) + Nunito Sans for Ambient; Fredoka for Guma. A font is only
-  fetched once a skin uses it. They are exposed as `--font-<skin>-…`, and each
-  theme maps its pair onto `--font-display` / `--font-sans`.
+  Sans for Tuner; Archivo (`wdth` axis, condensed capitals) + Kalam 700 (album
+  titles) for Kaseta; Unbounded + Manrope for Rave; Fraunces (with italics) +
+  Nunito Sans for Ambient; Nunito for Guma — local static cuts in
+  `src/app/skins/fonts/`, each CSS weight mapped to a Nunito 200 heavier. A
+  font is only fetched once a skin uses it. They are exposed as
+  `--font-<skin>-…`, and each theme maps its pair onto `--font-display` /
+  `--font-sans`. Every font must cover Polish (ą ć ę ł ń ó ś ź ż): Fredoka and
+  Permanent Marker were dropped because Google's builds lack those letters.
 - **Routes.** The tabs are the route group `src/app/(app)/`, whose layout wraps
   them in `AppDataProvider` and renders `BottomNav`: Losuj (`/`), Historia
   (`/history`), Ulubione (`/saved`), Konto (`/account` — Profil | Ustawienia
